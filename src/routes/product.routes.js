@@ -2,16 +2,33 @@ import express from 'express';
 import productController from '../controllers/product.controller.js';
 import favoriteController from '../controllers/favorite.controller.js';
 import { protect, authorize } from '../middlewares/auth.middleware.js';
+import upload from '../middlewares/upload.middleware.js';
 
 const router = express.Router();
 
 router.route('/')
     .get(productController.getProducts)
-    .post(protect, authorize('seller', 'admin'), productController.createProduct);
+    .post(
+        protect,
+        authorize('seller', 'admin'),
+        upload.fields([
+            { name: 'images', maxCount: 5 },
+            { name: 'backImage', maxCount: 1 }
+        ]),
+        productController.createProduct
+    );
 
 router.route('/:id')
     .get(productController.getProductById)
-    .put(protect, authorize('seller', 'admin'), productController.updateProduct)
+    .put(
+        protect,
+        authorize('seller', 'admin'),
+        upload.fields([
+            { name: 'images', maxCount: 5 },
+            { name: 'backImage', maxCount: 1 }
+        ]),
+        productController.updateProduct
+    )
     .delete(protect, authorize('seller', 'admin'), productController.deleteProduct);
 
 // Favorite routes

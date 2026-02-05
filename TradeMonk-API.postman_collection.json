@@ -173,6 +173,30 @@
                         }
                     },
                     "response": []
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/logout",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "logout"
+                            ]
+                        }
+                    },
+                    "response": []
                 }
             ]
         },
@@ -211,7 +235,7 @@
                     "response": []
                 },
                 {
-                    "name": "Create Product",
+                    "name": "Create Product (with Images)",
                     "event": [
                         {
                             "listen": "test",
@@ -237,13 +261,59 @@
                             }
                         ],
                         "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"title\": \"Charizard VMAX\",\n    \"collectionName\": \"Shining Fates\",\n    \"gameSystem\": \"Pokémon\",\n    \"price\": 185.50,\n    \"quantity\": 1,\n    \"condition\": \"MINT\",\n    \"rarity\": \"SECRET RARE\",\n    \"description\": \"Near Mint condition, kept in sleeve.\",\n    \"badges\": [\"TOP RATED\", \"FAST SHIPPING\"],\n    \"rating\": 4.9,\n    \"images\": [\"http://example.com/charizard.jpg\"]\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "title",
+                                    "value": "Charizard VMAX",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "collectionName",
+                                    "value": "Shining Fates",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "gameSystem",
+                                    "value": "Pokémon",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "price",
+                                    "value": "185.50",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "quantity",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "condition",
+                                    "value": "MINT",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "rarity",
+                                    "value": "SECRET RARE",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "description",
+                                    "value": "Near Mint condition, kept in sleeve.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "images",
+                                    "type": "file",
+                                    "src": []
+                                },
+                                {
+                                    "key": "backImage",
+                                    "type": "file",
+                                    "src": []
                                 }
-                            }
+                            ]
                         },
                         "url": {
                             "raw": "{{base_url}}/products",

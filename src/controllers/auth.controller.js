@@ -115,6 +115,22 @@ const authController = {
             next(error);
         }
     },
+
+    // @desc    Logout user / Clear token
+    // @route   POST /api/v1/auth/logout
+    // @access  Private
+    logout: async (req, res, next) => {
+        try {
+            await authService.logout(req.user._id);
+
+            res.status(200).json({
+                success: true,
+                message: 'Logged out successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
 };
 
 export default authController;

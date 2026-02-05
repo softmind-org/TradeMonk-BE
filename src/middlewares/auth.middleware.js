@@ -9,7 +9,6 @@ export const protect = async (req, res, next) => {
         req.headers.authorization &&
         req.headers.authorization.startsWith('Bearer')
     ) {
-        console.log('Raw Auth Header:', req.headers.authorization);
         // Set token from Bearer token in header
         token = req.headers.authorization.split(' ')[1];
     }
@@ -24,12 +23,24 @@ export const protect = async (req, res, next) => {
         // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        req.user = await User.findById(decoded.id);
+        // Check if token matches the one in DB (Single Session / Logout support)
+        // explicitly select +accessToken because it is excluded by default
+        const user = await User.findById(decoded.id).select('+accessToken');
 
-        if (!req.user) {
+        if (!user) {
             res.status(401);
             return next(new Error('User not found with this id'));
         }
+
+        if (token !== user.accessToken) {
+            res.status(401);
+            return next(new Error('Not authorized to access this route (Invalid Token)'));
+        }
+
+        // Remove accessToken from user object before attaching to req
+        // so we don't accidentally expose it in controllers
+        user.accessToken = undefined;
+        req.user = user;
 
         next();
     } catch (err) {

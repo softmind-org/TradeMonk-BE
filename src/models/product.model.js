@@ -28,6 +28,7 @@ const productSchema = new mongoose.Schema({
 
     // Visuals & Badges
     images: [{ type: String }],                           // URLs from Cloudinary/S3
+    backImage: { type: String },                           // For hover effect
     badges: [{ type: String }],                           // e.g., ["FAST SHIPPING", "TOP RATED"]
     rating: { type: Number, default: 0 },
 

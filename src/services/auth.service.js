@@ -172,6 +172,20 @@ const authService = {
 
         return { message: 'Password Reset Successful' };
     },
+
+    // Logout User
+    logout: async (userId) => {
+        const user = await User.findById(userId);
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        user.accessToken = undefined;
+        await user.save();
+
+        return { message: 'Logged out successfully' };
+    },
 };
 
 export default authService;

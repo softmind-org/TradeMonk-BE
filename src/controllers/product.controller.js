@@ -77,15 +77,23 @@ const productController = {
             const sellerInfo = {
                 userId: req.user._id,
                 name: req.user.fullName,
-                // In a real app, you might fetch reputation from a User/Profile model
                 reputation: 'New Seller',
                 positiveFeedback: '100%'
             };
 
-            const product = await Product.create({
-                ...req.body,
-                seller: sellerInfo,
-            });
+            const productData = { ...req.body, seller: sellerInfo };
+
+            // Handle images upload
+            if (req.files) {
+                if (req.files.images) {
+                    productData.images = req.files.images.map(file => `/public/uploads/products/${file.filename}`);
+                }
+                if (req.files.backImage) {
+                    productData.backImage = `/public/uploads/products/${req.files.backImage[0].filename}`;
+                }
+            }
+
+            const product = await Product.create(productData);
 
             res.status(201).json({
                 success: true,
@@ -114,7 +122,19 @@ const productController = {
                 throw new Error('User not authorized to update this product');
             }
 
-            product = await Product.findByIdAndUpdate(req.params.id, req.body, {
+            const updateData = { ...req.body };
+
+            // Handle images upload
+            if (req.files) {
+                if (req.files.images) {
+                    updateData.images = req.files.images.map(file => `/public/uploads/products/${file.filename}`);
+                }
+                if (req.files.backImage) {
+                    updateData.backImage = `/public/uploads/products/${req.files.backImage[0].filename}`;
+                }
+            }
+
+            product = await Product.findByIdAndUpdate(req.params.id, updateData, {
                 new: true,
                 runValidators: true,
             });
