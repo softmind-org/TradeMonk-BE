@@ -14,7 +14,7 @@ const productSchema = new mongoose.Schema({
     // Pricing & Status
     price: { type: Number, required: true, index: true }, // For filtering/sorting
     quantity: { type: Number, default: 1 },
-    currency: { type: String, default: 'USD' },
+    currency: { type: String, default: 'EUR' },
     status: { type: String, default: 'active', enum: ['active', 'sold', 'draft'] },
 
     // Card Details (Filters)
