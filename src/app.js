@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+
 // Middleware
 app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
