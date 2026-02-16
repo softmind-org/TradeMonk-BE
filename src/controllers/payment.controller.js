@@ -4,7 +4,13 @@ import Product from '../models/product.model.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+if (!stripeSecretKey) {
+    console.error('STRIPE_SECRET_KEY is missing in .env file');
+}
+
+const stripe = new Stripe(stripeSecretKey || 'sk_test_placeholder');
 
 const paymentController = {
     // @desc    Create Stripe PaymentIntent

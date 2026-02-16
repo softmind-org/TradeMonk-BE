@@ -18,6 +18,8 @@ router.route('/')
         productController.createProduct
     );
 
+router.get('/me', protect, authorize('seller', 'admin'), productController.getMyProducts);
+
 router.route('/:id')
     .get(productController.getProductById)
     .put(

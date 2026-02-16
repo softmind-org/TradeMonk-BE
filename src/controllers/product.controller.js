@@ -47,6 +47,24 @@ const productController = {
         }
     },
 
+    // @desc    Get logged-in seller's products
+    // @route   GET /api/v1/products/me
+    // @access  Private (Seller/Admin)
+    getMyProducts: async (req, res, next) => {
+        try {
+            const products = await Product.find({ 'seller.userId': req.user._id })
+                .sort('-createdAt');
+
+            res.status(200).json({
+                success: true,
+                count: products.length,
+                data: products
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
+
     // @desc    Get single product
     // @route   GET /api/v1/products/:id
     // @access  Public

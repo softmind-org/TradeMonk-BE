@@ -4,10 +4,11 @@ const productSchema = new mongoose.Schema({
     // Core Info
     title: { type: String, required: true, index: true }, // Text Search
     collectionName: { type: String, required: true },     // e.g., "SHINING FATES"
+    setNumber: { type: String },                          // e.g., "POK-001"
     gameSystem: {
         type: String,
         required: true,
-        enum: ['Pokémon', 'Yu-Gi-Oh', 'Magic: The Gathering'],
+        enum: ['Pokémon', 'Yu-Gi-Oh!', 'Magic', 'Sports', 'Yu-Gi-Oh', 'Magic: The Gathering'], // Expanded for compatibility
         index: true
     },
 
