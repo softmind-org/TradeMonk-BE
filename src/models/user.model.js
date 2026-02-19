@@ -32,6 +32,18 @@ const userSchema = new mongoose.Schema({
         type: String,
         select: false, // Don't return token by default
     },
+    // Stripe Connect (Sellers)
+    stripeConnectId: {
+        type: String,
+    },
+    stripeOnboardingComplete: {
+        type: Boolean,
+        default: false,
+    },
+    stripePayoutsEnabled: {
+        type: Boolean,
+        default: false,
+    },
     resetPasswordOtp: String,
     resetPasswordOtpExpiry: Date,
 }, {

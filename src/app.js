@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import routes from './routes/index.js';
+import stripeController from './controllers/stripe.controller.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +18,14 @@ app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 app.use(cors());
+
+// Stripe webhook route (MUST be before express.json() — requires raw body)
+app.post('/api/v1/stripe/webhooks',
+    express.raw({ type: 'application/json' }),
+    stripeController.handleWebhook
+);
+
+// JSON body parser (after webhook route)
 app.use(express.json());
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));

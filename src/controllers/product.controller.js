@@ -1,4 +1,5 @@
 import Product from '../models/product.model.js';
+import { signImageUrls } from '../utils/s3.utils.js';
 
 const productController = {
     // @desc    Get all products with filtering, sorting and pagination
@@ -34,13 +35,16 @@ const productController = {
             // Get total count for pagination info
             const count = await Product.countDocuments(query);
 
+            // Sign S3 image URLs
+            const signedProducts = await signImageUrls(products);
+
             res.status(200).json({
                 success: true,
-                count: products.length,
+                count: signedProducts.length,
                 total: count,
                 totalPages: Math.ceil(count / limit),
                 currentPage: Number(page),
-                data: products,
+                data: signedProducts,
             });
         } catch (error) {
             next(error);
@@ -55,10 +59,13 @@ const productController = {
             const products = await Product.find({ 'seller.userId': req.user._id })
                 .sort('-createdAt');
 
+            // Sign S3 image URLs
+            const signedProducts = await signImageUrls(products);
+
             res.status(200).json({
                 success: true,
-                count: products.length,
-                data: products
+                count: signedProducts.length,
+                data: signedProducts
             });
         } catch (error) {
             next(error);
@@ -77,9 +84,12 @@ const productController = {
                 throw new Error('Product not found');
             }
 
+            // Sign S3 image URLs
+            const signedProduct = await signImageUrls(product);
+
             res.status(200).json({
                 success: true,
-                data: product,
+                data: signedProduct,
             });
         } catch (error) {
             next(error);
@@ -101,21 +111,24 @@ const productController = {
 
             const productData = { ...req.body, seller: sellerInfo };
 
-            // Handle images upload
+            // Handle images upload — store S3 key (not full URL) for private bucket signing
             if (req.files) {
                 if (req.files.images) {
-                    productData.images = req.files.images.map(file => `/public/uploads/products/${file.filename}`);
+                    productData.images = req.files.images.map(file => file.key || file.location);
                 }
                 if (req.files.backImage) {
-                    productData.backImage = `/public/uploads/products/${req.files.backImage[0].filename}`;
+                    productData.backImage = req.files.backImage[0].key || req.files.backImage[0].location;
                 }
             }
 
             const product = await Product.create(productData);
 
+            // Return signed URLs in response
+            const signedProduct = await signImageUrls(product);
+
             res.status(201).json({
                 success: true,
-                data: product,
+                data: signedProduct,
             });
         } catch (error) {
             next(error);
@@ -142,13 +155,13 @@ const productController = {
 
             const updateData = { ...req.body };
 
-            // Handle images upload
+            // Handle images upload — store S3 key for private bucket signing
             if (req.files) {
                 if (req.files.images) {
-                    updateData.images = req.files.images.map(file => `/public/uploads/products/${file.filename}`);
+                    updateData.images = req.files.images.map(file => file.key || file.location);
                 }
                 if (req.files.backImage) {
-                    updateData.backImage = `/public/uploads/products/${req.files.backImage[0].filename}`;
+                    updateData.backImage = req.files.backImage[0].key || req.files.backImage[0].location;
                 }
             }
 
@@ -157,9 +170,12 @@ const productController = {
                 runValidators: true,
             });
 
+            // Return signed URLs in response
+            const signedProduct = await signImageUrls(product);
+
             res.status(200).json({
                 success: true,
-                data: product,
+                data: signedProduct,
             });
         } catch (error) {
             next(error);
@@ -197,3 +213,4 @@ const productController = {
 };
 
 export default productController;
+

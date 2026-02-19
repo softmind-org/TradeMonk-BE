@@ -613,6 +613,101 @@
             ]
         },
         {
+            "name": "Stripe Connect",
+            "item": [
+                {
+                    "name": "Create Connect Account",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.success) {",
+                                    "    pm.collectionVariables.set(\"stripe_connect_id\", jsonData.stripeConnectId);",
+                                    "    console.log(\"Stripe Connect ID saved: \" + jsonData.stripeConnectId);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/stripe/connect/account",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "stripe",
+                                "connect",
+                                "account"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Account Link (Onboarding)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/stripe/connect/account-link",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "stripe",
+                                "connect",
+                                "account-link"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Account Status",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/stripe/connect/account-status",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "stripe",
+                                "connect",
+                                "account-status"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
             "name": "Payments",
             "item": [
                 {
@@ -625,6 +720,13 @@
                                     "var jsonData = pm.response.json();",
                                     "if (jsonData.success) {",
                                     "    pm.collectionVariables.set(\"client_secret\", jsonData.clientSecret);",
+                                    "    pm.collectionVariables.set(\"payment_intent_id\", jsonData.paymentIntentId);",
+                                    "    console.log(\"Fee Breakdown:\");",
+                                    "    console.log(\"  Items Total: €\" + jsonData.breakdown.itemsTotal);",
+                                    "    console.log(\"  Service Fee: €\" + jsonData.breakdown.serviceFee);",
+                                    "    console.log(\"  Buyer Total: €\" + jsonData.breakdown.buyerTotal);",
+                                    "    console.log(\"  Platform Fee: €\" + jsonData.breakdown.platformFee);",
+                                    "    console.log(\"  Seller Net: €\" + jsonData.breakdown.sellerNet);",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -660,6 +762,21 @@
             "item": [
                 {
                     "name": "Create Order",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.success) {",
+                                    "    pm.collectionVariables.set(\"order_id\", jsonData.data._id);",
+                                    "    console.log(\"Order ID saved: \" + jsonData.data._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -671,7 +788,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"items\": [\n        {\n            \"productId\": \"{{product_id}}\",\n            \"title\": \"Charizard VMAX\",\n            \"price\": 185.50,\n            \"quantity\": 1,\n            \"image\": \"/public/uploads/products/image.jpg\"\n        }\n    ],\n    \"totalAmount\": 185.50,\n    \"shippingAddress\": {\n        \"fullName\": \"John Doe\",\n        \"address\": \"123 Main St\",\n        \"city\": \"Berlin\",\n        \"zipCode\": \"10115\"\n    },\n    \"paymentIntentId\": \"pi_3P...\"\n}",
+                            "raw": "{\n    \"items\": [\n        {\n            \"productId\": \"{{product_id}}\",\n            \"title\": \"Charizard VMAX\",\n            \"price\": 185.50,\n            \"quantity\": 1,\n            \"image\": \"/public/uploads/products/image.jpg\"\n        }\n    ],\n    \"totalAmount\": 185.50,\n    \"shippingAddress\": {\n        \"fullName\": \"John Doe\",\n        \"address\": \"123 Main St\",\n        \"city\": \"Berlin\",\n        \"zipCode\": \"10115\"\n    },\n    \"paymentIntentId\": \"{{payment_intent_id}}\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -753,6 +870,31 @@
         },
         {
             "key": "product_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "stripe_connect_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "client_secret",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "payment_intent_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "cart_item_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "order_id",
             "value": "",
             "type": "string"
         }

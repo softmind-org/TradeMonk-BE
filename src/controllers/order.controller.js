@@ -1,6 +1,7 @@
 import Order from '../models/order.model.js';
 import Cart from '../models/cart.model.js';
 import crypto from 'crypto';
+import { signImageUrls } from '../utils/s3.utils.js';
 
 const orderController = {
     // @desc    Create new order and clear cart
@@ -48,10 +49,13 @@ const orderController = {
         try {
             const orders = await Order.find({ userId: req.user._id }).sort('-createdAt');
 
+            // Sign S3 image URLs in order items
+            const signedOrders = await signImageUrls(orders);
+
             res.status(200).json({
                 success: true,
-                count: orders.length,
-                data: orders
+                count: signedOrders.length,
+                data: signedOrders
             });
         } catch (error) {
             next(error);
@@ -70,9 +74,12 @@ const orderController = {
                 throw new Error('Order not found');
             }
 
+            // Sign S3 image URLs in order items
+            const signedOrder = await signImageUrls(order);
+
             res.status(200).json({
                 success: true,
-                data: order
+                data: signedOrder
             });
         } catch (error) {
             next(error);
@@ -81,3 +88,4 @@ const orderController = {
 };
 
 export default orderController;
+
