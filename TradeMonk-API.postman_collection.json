@@ -742,6 +742,15 @@
                                 "type": "text"
                             }
                         ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"sellerId\": \"{{seller_id}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
                         "url": {
                             "raw": "{{base_url}}/payments/create-intent",
                             "host": [
@@ -788,7 +797,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"items\": [\n        {\n            \"productId\": \"{{product_id}}\",\n            \"title\": \"Charizard VMAX\",\n            \"price\": 185.50,\n            \"quantity\": 1,\n            \"image\": \"/public/uploads/products/image.jpg\"\n        }\n    ],\n    \"totalAmount\": 185.50,\n    \"shippingAddress\": {\n        \"fullName\": \"John Doe\",\n        \"address\": \"123 Main St\",\n        \"city\": \"Berlin\",\n        \"zipCode\": \"10115\"\n    },\n    \"paymentIntentId\": \"{{payment_intent_id}}\"\n}",
+                            "raw": "{\n    \"sellerId\": \"{{seller_id}}\",\n    \"items\": [\n        {\n            \"productId\": \"{{product_id}}\",\n            \"title\": \"Charizard VMAX\",\n            \"price\": 185.50,\n            \"quantity\": 1,\n            \"image\": \"/public/uploads/products/image.jpg\"\n        }\n    ],\n    \"totalAmount\": 188.53,\n    \"feeBreakdown\": {\n        \"itemsTotal\": 185.50,\n        \"serviceFee\": 3.03,\n        \"platformFee\": 6.49,\n        \"sellerNet\": 179.01\n    },\n    \"shippingAddress\": {\n        \"fullName\": \"John Doe\",\n        \"address\": \"123 Main St\",\n        \"city\": \"Berlin\",\n        \"zipCode\": \"10115\"\n    },\n    \"paymentIntentId\": \"{{payment_intent_id}}\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -855,6 +864,35 @@
                     "response": []
                 }
             ]
+        },
+        {
+            "name": "Transfers",
+            "item": [
+                {
+                    "name": "Trigger Transfer (Seller Payout)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/transfers/{{order_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "transfers",
+                                "{{order_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
         }
     ],
     "variable": [
@@ -895,6 +933,11 @@
         },
         {
             "key": "order_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "seller_id",
             "value": "",
             "type": "string"
         }

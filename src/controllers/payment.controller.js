@@ -1,7 +1,5 @@
 import stripe from '../config/stripe.config.js';
 import Cart from '../models/cart.model.js';
-import Product from '../models/product.model.js';
-import User from '../models/user.model.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -13,76 +11,63 @@ const STRIPE_FEE_PERCENT = 0.015;
 const STRIPE_FEE_FIXED = 0.25; // in EUR
 
 const paymentController = {
-    // @desc    Create Stripe PaymentIntent with Connect (application fee)
+    // @desc    Create Stripe PaymentIntent for the ENTIRE cart (all sellers)
     // @route   POST /api/v1/payments/create-intent
     // @access  Private
     createPaymentIntent: async (req, res, next) => {
         try {
-            // Get user's cart items with product details
+            // Get ALL cart items (not filtered by seller)
             const cartItems = await Cart.find({ userId: req.user._id }).populate('productId');
 
-            if (cartItems.length === 0) {
+            const validItems = cartItems.filter(item => item.productId);
+            if (validItems.length === 0) {
                 res.status(400);
-                throw new Error('Cart is empty');
+                throw new Error('Your cart is empty');
             }
 
-            // Recalculate total amount on backend for security
+            // Calculate total across ALL sellers
             let itemsTotal = 0;
-            const sellerIds = new Set();
+            const sellerTotals = {};
 
-            cartItems.forEach(item => {
-                if (item.productId) {
-                    itemsTotal += item.productId.price * item.quantity;
-                    sellerIds.add(item.productId.seller.userId.toString());
+            validItems.forEach(item => {
+                const lineTotal = item.productId.price * item.quantity;
+                itemsTotal += lineTotal;
+
+                // Track per-seller totals for fee breakdown
+                const sellerId = item.productId.seller.userId.toString();
+                if (!sellerTotals[sellerId]) {
+                    sellerTotals[sellerId] = 0;
                 }
+                sellerTotals[sellerId] += lineTotal;
             });
 
-            // For now, support single-seller checkout
-            if (sellerIds.size > 1) {
-                res.status(400);
-                throw new Error('Cart contains items from multiple sellers. Please checkout one seller at a time.');
-            }
+            itemsTotal = parseFloat(itemsTotal.toFixed(2));
 
-            const sellerId = [...sellerIds][0];
-
-            // Get seller's Stripe Connect account
-            const seller = await User.findById(sellerId);
-
-            if (!seller || !seller.stripeConnectId) {
-                res.status(400);
-                throw new Error('Seller has not set up payment account yet');
-            }
-
-            if (!seller.stripeOnboardingComplete) {
-                res.status(400);
-                throw new Error('Seller payment account is not fully set up');
-            }
-
-            // Calculate fees
             // Service Fee (Stripe processing fee, paid by buyer)
             const serviceFee = parseFloat((itemsTotal * STRIPE_FEE_PERCENT + STRIPE_FEE_FIXED).toFixed(2));
 
             // Total buyer pays
             const buyerTotal = parseFloat((itemsTotal + serviceFee).toFixed(2));
 
-            // TradeMonk commission (3.5% of item price, deducted from seller)
+            // TradeMonk commission (3.5% of item price, deducted from sellers on transfer)
             const platformFee = parseFloat((itemsTotal * COMMISSION_RATE).toFixed(2));
+
+            // What sellers will receive in total after transfers
+            const sellerNet = parseFloat((itemsTotal - platformFee).toFixed(2));
 
             // Convert to cents for Stripe
             const amountInCents = Math.round(buyerTotal * 100);
-            const platformFeeInCents = Math.round(platformFee * 100);
 
-            // Create PaymentIntent with Connect
+            // Platform-direct charge — money stays in TradeMonk balance until per-seller transfers
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amountInCents,
                 currency: 'eur',
-                application_fee_amount: platformFeeInCents,
-                transfer_data: {
-                    destination: seller.stripeConnectId,
-                },
                 metadata: {
                     userId: req.user._id.toString(),
-                    sellerId: sellerId,
+                    itemsTotal: itemsTotal.toString(),
+                    platformFee: platformFee.toString(),
+                    sellerNet: sellerNet.toString(),
+                    sellerCount: Object.keys(sellerTotals).length.toString(),
                 },
                 automatic_payment_methods: {
                     enabled: true,
@@ -94,12 +79,13 @@ const paymentController = {
                 clientSecret: paymentIntent.client_secret,
                 paymentIntentId: paymentIntent.id,
                 breakdown: {
-                    itemsTotal: itemsTotal,
-                    serviceFee: serviceFee,
-                    buyerTotal: buyerTotal,
-                    platformFee: platformFee,
-                    sellerNet: parseFloat((itemsTotal - platformFee).toFixed(2)),
+                    itemsTotal,
+                    serviceFee,
+                    buyerTotal,
+                    platformFee,
+                    sellerNet,
                     currency: 'EUR',
+                    sellerTotals, // { sellerId: amount } for frontend reference
                 },
             });
         } catch (error) {

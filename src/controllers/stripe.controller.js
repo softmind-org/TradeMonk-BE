@@ -182,14 +182,41 @@ const stripeController = {
 
             case 'payment_intent.succeeded': {
                 const paymentIntent = event.data.object;
-                const userId = paymentIntent.metadata?.userId;
                 const orderId = paymentIntent.metadata?.orderId;
 
                 if (orderId) {
                     await Order.findByIdAndUpdate(orderId, {
                         paymentStatus: 'paid',
+                        orderStatus: 'processing',
                     });
                     console.log(`✅ Payment succeeded for order ${orderId}`);
+                }
+                break;
+            }
+
+            case 'transfer.created': {
+                const transfer = event.data.object;
+                const orderId = transfer.metadata?.orderId;
+
+                if (orderId) {
+                    await Order.findByIdAndUpdate(orderId, {
+                        transferStatus: 'transferred',
+                        stripeTransferId: transfer.id,
+                    });
+                    console.log(`✅ Transfer created for order ${orderId}: ${transfer.id}`);
+                }
+                break;
+            }
+
+            case 'transfer.failed': {
+                const transfer = event.data.object;
+                const orderId = transfer.metadata?.orderId;
+
+                if (orderId) {
+                    await Order.findByIdAndUpdate(orderId, {
+                        transferStatus: 'pending', // Reset so it can be retried
+                    });
+                    console.error(`❌ Transfer failed for order ${orderId}: ${transfer.id}`);
                 }
                 break;
             }

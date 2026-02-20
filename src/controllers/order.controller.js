@@ -4,16 +4,21 @@ import crypto from 'crypto';
 import { signImageUrls } from '../utils/s3.utils.js';
 
 const orderController = {
-    // @desc    Create new order and clear cart
+    // @desc    Create new order (per-seller) and clear seller's items from cart
     // @route   POST /api/v1/orders
     // @access  Private
     createOrder: async (req, res, next) => {
         try {
-            const { items, totalAmount, shippingAddress, paymentIntentId } = req.body;
+            const { items, totalAmount, sellerId, feeBreakdown, shippingAddress, paymentIntentId } = req.body;
 
             if (!items || items.length === 0) {
                 res.status(400);
                 throw new Error('No items in order');
+            }
+
+            if (!sellerId) {
+                res.status(400);
+                throw new Error('sellerId is required');
             }
 
             // Generate unique order number
@@ -21,17 +26,24 @@ const orderController = {
 
             const order = await Order.create({
                 userId: req.user._id,
+                sellerId,
                 orderNumber,
                 items,
                 totalAmount,
+                feeBreakdown,
                 shippingAddress,
-                paymentStatus: 'paid', // Assuming frontend only calls this after stripe success
-                orderStatus: 'grading',
+                paymentStatus: 'paid',
+                orderStatus: 'processing',
+                transferStatus: 'pending',
                 paymentIntentId
             });
 
-            // Clear user's cart after successful order creation
-            await Cart.deleteMany({ userId: req.user._id });
+            // Clear only this seller's items from cart (not entire cart)
+            const productIds = items.map(item => item.productId);
+            await Cart.deleteMany({
+                userId: req.user._id,
+                productId: { $in: productIds }
+            });
 
             res.status(201).json({
                 success: true,
@@ -88,4 +100,3 @@ const orderController = {
 };
 
 export default orderController;
-

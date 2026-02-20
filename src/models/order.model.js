@@ -6,6 +6,11 @@ const orderSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
+    sellerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
     orderNumber: {
         type: String,
         required: true,
@@ -25,6 +30,12 @@ const orderSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    feeBreakdown: {
+        itemsTotal: Number,
+        serviceFee: Number,
+        platformFee: Number,
+        sellerNet: Number
+    },
     shippingAddress: {
         fullName: { type: String, required: true },
         address: { type: String, required: true },
@@ -33,20 +44,32 @@ const orderSchema = new mongoose.Schema({
     },
     paymentStatus: {
         type: String,
-        enum: ['pending', 'paid', 'failed'],
+        enum: ['pending', 'paid', 'failed', 'refunded'],
         default: 'pending'
     },
     orderStatus: {
         type: String,
-        enum: ['grading', 'shipped', 'delivered'],
-        default: 'grading'
+        enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+        default: 'pending'
+    },
+    transferStatus: {
+        type: String,
+        enum: ['pending', 'transferred', 'refunded'],
+        default: 'pending'
     },
     paymentIntentId: {
         type: String,
         required: true
-    }
+    },
+    stripeTransferId: String,
+    trackingNumber: String
 }, {
     timestamps: true
 });
 
+// Index for efficient queries
+orderSchema.index({ userId: 1, createdAt: -1 });
+orderSchema.index({ sellerId: 1, createdAt: -1 });
+
 export default mongoose.model('Order', orderSchema);
+
