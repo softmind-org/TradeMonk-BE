@@ -49,12 +49,12 @@ const orderSchema = new mongoose.Schema({
     },
     orderStatus: {
         type: String,
-        enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+        enum: ['pending', 'processing', 'confirmed', 'shipped', 'delivered', 'cancelled', 'disputed'],
         default: 'pending'
     },
     transferStatus: {
         type: String,
-        enum: ['pending', 'transferred', 'refunded'],
+        enum: ['pending', 'paid', 'transferred', 'refunded'],
         default: 'pending'
     },
     paymentIntentId: {
@@ -62,7 +62,14 @@ const orderSchema = new mongoose.Schema({
         required: true
     },
     stripeTransferId: String,
-    trackingNumber: String
+    trackingNumber: String, // Keeping this for backward compatibility, but moving to trackingDetails
+    trackingDetails: {
+        number: String,
+        carrier: String,
+        shippedAt: Date
+    },
+    payoutClearanceDate: Date,
+    deliveryDate: Date
 }, {
     timestamps: true
 });

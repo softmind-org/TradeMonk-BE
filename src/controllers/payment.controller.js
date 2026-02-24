@@ -41,19 +41,22 @@ const paymentController = {
                 sellerTotals[sellerId] += lineTotal;
             });
 
+            const sellerCount = Object.keys(sellerTotals).length;
+            const shippingTotal = sellerCount * 15.00; // €15 per seller
+
             itemsTotal = parseFloat(itemsTotal.toFixed(2));
 
             // Service Fee (Stripe processing fee, paid by buyer)
-            const serviceFee = parseFloat((itemsTotal * STRIPE_FEE_PERCENT + STRIPE_FEE_FIXED).toFixed(2));
+            const serviceFee = parseFloat(((itemsTotal + shippingTotal) * STRIPE_FEE_PERCENT + STRIPE_FEE_FIXED).toFixed(2));
 
-            // Total buyer pays
-            const buyerTotal = parseFloat((itemsTotal + serviceFee).toFixed(2));
+            // Total buyer pays (Items + Shipping + Service)
+            const buyerTotal = parseFloat((itemsTotal + shippingTotal + serviceFee).toFixed(2));
 
             // TradeMonk commission (3.5% of item price, deducted from sellers on transfer)
             const platformFee = parseFloat((itemsTotal * COMMISSION_RATE).toFixed(2));
 
-            // What sellers will receive in total after transfers
-            const sellerNet = parseFloat((itemsTotal - platformFee).toFixed(2));
+            // What sellers will receive in total after transfers (Items - Commission + Shipping)
+            const sellerNet = parseFloat((itemsTotal - platformFee + shippingTotal).toFixed(2));
 
             // Convert to cents for Stripe
             const amountInCents = Math.round(buyerTotal * 100);
@@ -65,9 +68,10 @@ const paymentController = {
                 metadata: {
                     userId: req.user._id.toString(),
                     itemsTotal: itemsTotal.toString(),
+                    shippingTotal: shippingTotal.toString(),
                     platformFee: platformFee.toString(),
                     sellerNet: sellerNet.toString(),
-                    sellerCount: Object.keys(sellerTotals).length.toString(),
+                    sellerCount: sellerCount.toString(),
                 },
                 automatic_payment_methods: {
                     enabled: true,

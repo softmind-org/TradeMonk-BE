@@ -6,10 +6,19 @@ const router = express.Router();
 
 router.use(protect);
 
+// Order endpoints
 router.route('/')
     .get(orderController.getMyOrders)
     .post(orderController.createOrder);
 
+// Seller endpoints (Must be before /:id)
+router.route('/seller')
+    .get(orderController.getSellerOrders);
+
+router.route('/:id/status')
+    .patch(orderController.updateOrderStatus);
+
+// By ID endpoint
 router.route('/:id')
     .get(orderController.getOrderById);
 
