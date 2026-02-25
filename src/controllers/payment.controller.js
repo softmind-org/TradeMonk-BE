@@ -6,9 +6,9 @@ dotenv.config();
 
 const COMMISSION_RATE = parseFloat(process.env.TRADEMONK_COMMISSION_RATE) || 0.035;
 
-// Stripe's EU card fee: 1.5% + €0.25 (approximation for service fee display)
-const STRIPE_FEE_PERCENT = 0.015;
-const STRIPE_FEE_FIXED = 0.25; // in EUR
+// Constants for Fee Calculations
+const STRIPE_PROCESSING_RATE = 0.032; // ~3.2% estimated Stripe processing fee
+const SHIPPING_PER_SELLER = 15.00; // in EUR
 
 const paymentController = {
     // @desc    Create Stripe PaymentIntent for the ENTIRE cart (all sellers)
@@ -42,21 +42,23 @@ const paymentController = {
             });
 
             const sellerCount = Object.keys(sellerTotals).length;
-            const shippingTotal = sellerCount * 15.00; // €15 per seller
+            const shippingTotal = sellerCount * SHIPPING_PER_SELLER;
 
             itemsTotal = parseFloat(itemsTotal.toFixed(2));
 
-            // Service Fee (Stripe processing fee, paid by buyer)
-            const serviceFee = parseFloat(((itemsTotal + shippingTotal) * STRIPE_FEE_PERCENT + STRIPE_FEE_FIXED).toFixed(2));
+            // 1. Buyer pays Items + Shipping.
+            const buyerTotal = parseFloat((itemsTotal + shippingTotal).toFixed(2));
 
-            // Total buyer pays (Items + Shipping + Service)
-            const buyerTotal = parseFloat((itemsTotal + shippingTotal + serviceFee).toFixed(2));
+            // 2. Estimate Stripe processing fee (approx 3.2%)
+            // This is absorbed by the seller.
+            const stripeFee = parseFloat((buyerTotal * STRIPE_PROCESSING_RATE).toFixed(2));
 
-            // TradeMonk commission (3.5% of item price, deducted from sellers on transfer)
+            // 3. TradeMonk commission (3.5% of the ITEM COST only, not shipping)
             const platformFee = parseFloat((itemsTotal * COMMISSION_RATE).toFixed(2));
 
-            // What sellers will receive in total after transfers (Items - Commission + Shipping)
-            const sellerNet = parseFloat((itemsTotal - platformFee + shippingTotal).toFixed(2));
+            // 4. Final Seller Net
+            // Seller receives the Item Cost + Shipping, MINUS the TradeMonk fee, MINUS Stripe fee
+            const sellerNet = parseFloat((itemsTotal + shippingTotal - platformFee - stripeFee).toFixed(2));
 
             // Convert to cents for Stripe
             const amountInCents = Math.round(buyerTotal * 100);
@@ -69,6 +71,7 @@ const paymentController = {
                     userId: req.user._id.toString(),
                     itemsTotal: itemsTotal.toString(),
                     shippingTotal: shippingTotal.toString(),
+                    stripeFee: stripeFee.toString(),
                     platformFee: platformFee.toString(),
                     sellerNet: sellerNet.toString(),
                     sellerCount: sellerCount.toString(),
@@ -84,7 +87,8 @@ const paymentController = {
                 paymentIntentId: paymentIntent.id,
                 breakdown: {
                     itemsTotal,
-                    serviceFee,
+                    stripeFee,
+                    shippingTotal,
                     buyerTotal,
                     platformFee,
                     sellerNet,

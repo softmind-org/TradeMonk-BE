@@ -32,7 +32,8 @@ const orderSchema = new mongoose.Schema({
     },
     feeBreakdown: {
         itemsTotal: Number,
-        serviceFee: Number,
+        shippingFee: Number,
+        stripeFee: Number,
         platformFee: Number,
         sellerNet: Number
     },

@@ -1,0 +1,41 @@
+[dotenv@17.2.3] injecting env (18) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+--- Starting Financial Flow Test ---
+Testing with Buyer: john@example.com
+Product: Charizard Base Set (Price: €350)
+
+Calling /payments/create-intent...
+
+--- Payment Intent Response ---
+{
+  itemsTotal: 350,
+  stripeFee: 11.68,
+  shippingTotal: 15,
+  buyerTotal: 365,
+  platformFee: 12.25,
+  sellerNet: 341.07,
+  currency: 'EUR',
+  sellerTotals: { '697a04bc1c12fe4573c5d137': 350 }
+}
+
+--- Math Verification ---
+✅ Items Total | Actual: 350 | Expected: 350
+✅ Shipping Total | Actual: 15 | Expected: 15
+✅ Buyer Total | Actual: 365 | Expected: 365
+✅ Stripe Fee (~3.2%) | Actual: 11.68 | Expected: 11.68
+✅ TradeMonk Fee (3.5% of Item) | Actual: 12.25 | Expected: 12.25
+✅ Seller Net | Actual: 341.07 | Expected: 341.07
+
+✅ ALL FINANCIAL MATH IS CORRECT!
+
+Calling /orders to create the order...
+✅ Order created successfully!
+Order Details: {
+  orderNumber: 'TM-183B6F',
+  feeBreakdown: {
+    itemsTotal: 350,
+    shippingFee: 15,
+    stripeFee: 11.68,
+    platformFee: 12.25,
+    sellerNet: 341.07
+  }
+}
