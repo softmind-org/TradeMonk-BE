@@ -1,6 +1,6 @@
 import express from 'express';
 import orderController from '../controllers/order.controller.js';
-import { protect } from '../middlewares/auth.middleware.js';
+import { protect, authorize } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
@@ -14,6 +14,9 @@ router.route('/')
 // Seller endpoints (Must be before /:id)
 router.route('/seller')
     .get(orderController.getSellerOrders);
+
+// Admin endpoints (Must be before /:id)
+router.get('/all', authorize('admin'), orderController.getAllOrders);
 
 router.route('/:id/status')
     .patch(orderController.updateOrderStatus);

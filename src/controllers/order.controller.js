@@ -190,6 +190,28 @@ const orderController = {
         } catch (error) {
             next(error);
         }
+    },
+
+    // --- ADMIN METHODS ---
+
+    // @desc    Get all orders (admin view)
+    // @route   GET /api/v1/orders/all
+    // @access  Private (Admin)
+    getAllOrders: async (req, res, next) => {
+        try {
+            const orders = await Order.find()
+                .populate('userId', 'fullName email')
+                .populate('sellerId', 'fullName email')
+                .sort('-createdAt');
+
+            res.status(200).json({
+                success: true,
+                count: orders.length,
+                data: orders
+            });
+        } catch (error) {
+            next(error);
+        }
     }
 };
 

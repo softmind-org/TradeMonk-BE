@@ -8,6 +8,7 @@ import paymentRoutes from './payment.routes.js';
 import orderRoutes from './order.routes.js';
 import stripeRoutes from './stripe.routes.js';
 import payoutRoutes from './payout.routes.js';
+import categoryRoutes from './category.routes.js';
 
 const router = express.Router();
 
@@ -20,5 +21,6 @@ router.use('/payments', paymentRoutes);
 router.use('/orders', orderRoutes);
 router.use('/stripe', stripeRoutes);
 router.use('/payouts', payoutRoutes);
+router.use('/categories', categoryRoutes);
 
 export default router;
