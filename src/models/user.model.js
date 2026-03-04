@@ -28,6 +28,11 @@ const userSchema = new mongoose.Schema({
         enum: ['buyer', 'seller', 'admin'],
         required: [true, 'Please specify a role'],
     },
+    status: {
+        type: String,
+        enum: ['active', 'suspended'],
+        default: 'active',
+    },
     accessToken: {
         type: String,
         select: false, // Don't return token by default
