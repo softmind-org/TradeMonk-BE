@@ -20,6 +20,9 @@ router.route('/')
 
 router.get('/me', protect, authorize('seller', 'admin'), productController.getMyProducts);
 
+// Admin endpoints (Must be before /:id)
+router.get('/all', protect, authorize('admin'), productController.getAllListings);
+
 router.route('/:id')
     .get(productController.getProductById)
     .put(

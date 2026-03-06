@@ -210,6 +210,29 @@ const productController = {
             next(error);
         }
     },
+
+    // --- ADMIN METHODS ---
+
+    // @desc    Get all listings (admin view — no status filter)
+    // @route   GET /api/v1/products/all
+    // @access  Private (Admin)
+    getAllListings: async (req, res, next) => {
+        try {
+            const products = await Product.find()
+                .sort('-createdAt');
+
+            // Sign S3 image URLs
+            const signedProducts = await signImageUrls(products);
+
+            res.status(200).json({
+                success: true,
+                count: signedProducts.length,
+                data: signedProducts,
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
 };
 
 export default productController;

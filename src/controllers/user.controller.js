@@ -106,7 +106,99 @@ const userController = {
         } catch (error) {
             next(error);
         }
-    }
+    },
+
+    // --- SELLER ADMIN METHODS ---
+
+    // @desc    Get all sellers with stats
+    // @route   GET /api/v1/users/sellers
+    // @access  Private (Admin)
+    getSellers: async (req, res, next) => {
+        try {
+            const User = (await import('../models/user.model.js')).default;
+            const Product = (await import('../models/product.model.js')).default;
+            const Order = (await import('../models/order.model.js')).default;
+
+            const sellers = await User.find({ role: 'seller' }).sort('-createdAt');
+
+            // Enrich each seller with listing count and GMV
+            const enrichedSellers = await Promise.all(
+                sellers.map(async (seller) => {
+                    const activeListings = await Product.countDocuments({
+                        'seller.userId': seller._id,
+                        status: 'active'
+                    });
+
+                    const orders = await Order.find({
+                        sellerId: seller._id,
+                        paymentStatus: 'paid'
+                    });
+                    const totalGmv = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
+                    return {
+                        ...seller.toObject(),
+                        activeListings,
+                        totalGmv,
+                    };
+                })
+            );
+
+            res.status(200).json({
+                success: true,
+                count: enrichedSellers.length,
+                data: enrichedSellers,
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    // @desc    Get seller detail with full stats
+    // @route   GET /api/v1/users/sellers/:id
+    // @access  Private (Admin)
+    getSellerDetail: async (req, res, next) => {
+        try {
+            const User = (await import('../models/user.model.js')).default;
+            const Product = (await import('../models/product.model.js')).default;
+            const Order = (await import('../models/order.model.js')).default;
+
+            const seller = await User.findById(req.params.id);
+            if (!seller || seller.role !== 'seller') {
+                res.status(404);
+                throw new Error('Seller not found');
+            }
+
+            // Stats
+            const totalListings = await Product.countDocuments({ 'seller.userId': seller._id });
+            const orders = await Order.find({ sellerId: seller._id, paymentStatus: 'paid' });
+            const totalGmv = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+            const refundedOrders = await Order.countDocuments({ sellerId: seller._id, paymentStatus: 'refunded' });
+            const refundRate = orders.length > 0 ? ((refundedOrders / orders.length) * 100).toFixed(1) : '0.0';
+
+            // Top listing (highest price active listing)
+            const topListing = await Product.findOne({ 'seller.userId': seller._id, status: 'active' })
+                .sort('-price')
+                .lean();
+
+            res.status(200).json({
+                success: true,
+                data: {
+                    seller,
+                    stats: {
+                        totalGmv,
+                        totalListings,
+                        followers: 0, // Placeholder
+                        disputes: 0,  // Placeholder
+                        refundRate: `${refundRate}%`,
+                        storeRating: 4.9, // Placeholder
+                    },
+                    topListing,
+                }
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
 };
 
 export default userController;

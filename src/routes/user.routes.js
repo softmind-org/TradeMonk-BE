@@ -10,6 +10,10 @@ router.route('/')
     .get(authorize('admin'), userController.getUsers)
     .post(authorize('admin'), userController.createUser);
 
+// Seller admin routes (Must be before /:id)
+router.get('/sellers', authorize('admin'), userController.getSellers);
+router.get('/sellers/:id', authorize('admin'), userController.getSellerDetail);
+
 router.route('/:id')
     .get(authorize('admin'), userController.getUserById);
 
