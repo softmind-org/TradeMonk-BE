@@ -12,6 +12,9 @@ router.route('/')
     .post(orderController.createOrder);
 
 // Seller endpoints (Must be before /:id)
+router.route('/seller/report/csv')
+    .get(orderController.generateMonthlyCsvReport);
+
 router.route('/seller')
     .get(orderController.getSellerOrders);
 
@@ -20,6 +23,10 @@ router.get('/all', authorize('admin'), orderController.getAllOrders);
 
 router.route('/:id/status')
     .patch(orderController.updateOrderStatus);
+
+// Invoice Download Endpoint (Must be before Generic GET /:id)
+router.route('/:id/invoice')
+    .get(orderController.downloadOrderInvoice);
 
 // By ID endpoint
 router.route('/:id')

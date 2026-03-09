@@ -98,6 +98,47 @@ const orderController = {
         }
     },
 
+    // @desc    Download order invoice as PDF
+    // @route   GET /api/v1/orders/:id/invoice
+    // @access  Private
+    downloadOrderInvoice: async (req, res, next) => {
+        try {
+            const orderId = req.params.id;
+            const currentUserId = req.user._id;
+            const currentUserRole = req.user.role;
+
+            const order = await Order.findById(orderId)
+                .populate('userId', 'fullName email')
+                .populate('sellerId', 'fullName email');
+
+            if (!order) {
+                res.status(404);
+                throw new Error('Order not found');
+            }
+
+            // Authorization: Only Buyer, Seller, or Admin can download
+            if (
+                order.userId._id.toString() !== currentUserId.toString() &&
+                order.sellerId._id.toString() !== currentUserId.toString() &&
+                currentUserRole !== 'admin'
+            ) {
+                res.status(403);
+                throw new Error('Not authorized to view this invoice');
+            }
+
+            const { generateInvoicePDF } = await import('../utils/pdf.utils.js');
+
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename="invoice_${order.orderNumber}.pdf"`);
+
+            // This will pipe the PDF to the response stream
+            await generateInvoicePDF(order, res);
+
+        } catch (error) {
+            next(error);
+        }
+    },
+
     // --- SELLER METHODS ---
 
     // @desc    Get orders where user is the seller
@@ -187,6 +228,81 @@ const orderController = {
                 message: `Order marked as ${status}`,
                 data: order
             });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    // @desc    Generate monthly sales CSV report for seller
+    // @route   GET /api/v1/orders/seller/report/csv
+    // @access  Private (Seller)
+    generateMonthlyCsvReport: async (req, res, next) => {
+        try {
+            const { month, year } = req.query;
+            const sellerId = req.user._id;
+
+            if (!month || !year) {
+                res.status(400);
+                throw new Error('Month and Year are required query parameters');
+            }
+
+            // Create date range for the query (JS months are 0-11, so month - 1)
+            const startMonth = parseInt(month, 10) - 1;
+            const queryYear = parseInt(year, 10);
+
+            const startDate = new Date(Date.UTC(queryYear, startMonth, 1, 0, 0, 0));
+            // First day of next month
+            const endDate = new Date(Date.UTC(queryYear, startMonth + 1, 1, 0, 0, 0));
+
+            const orders = await Order.find({
+                sellerId,
+                createdAt: {
+                    $gte: startDate,
+                    $lt: endDate
+                }
+            }).sort('createdAt');
+
+            // Generate CSV Header
+            const csvHeaders = ['Order ID', 'Date', 'Items', 'Item Total (EUR)', 'Shipping Fee (EUR)', 'Seller Platform Fee (EUR)', 'Seller Net (EUR)', 'Status'];
+
+            // Helper to escape commas and quotes in CSV
+            const sanitizeCsvField = (field) => {
+                if (field === null || field === undefined) return '';
+                const stringField = String(field);
+                if (stringField.includes(',') || stringField.includes('\"') || stringField.includes('\n')) {
+                    return `"${stringField.replace(/"/g, '""')}"`;
+                }
+                return stringField;
+            };
+
+            // Map orders to CSV rows
+            const csvRows = orders.map(order => {
+                const dateStr = order.createdAt.toISOString().replace('T', ' ').substring(0, 16);
+                const itemsList = order.items.map(i => `${i.title} x${i.quantity}`).join(', ');
+
+                return [
+                    order.orderNumber,
+                    dateStr,
+                    itemsList,
+                    (order.feeBreakdown?.itemsTotal || 0).toFixed(2),
+                    (order.feeBreakdown?.shippingFee || 0).toFixed(2),
+                    (order.feeBreakdown?.platformFee || 0).toFixed(2),
+                    (order.feeBreakdown?.sellerNet || 0).toFixed(2),
+                    order.orderStatus
+                ].map(sanitizeCsvField).join(',');
+            });
+
+            const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
+
+            const paddedMonth = String(month).padStart(2, '0');
+            const fileName = `sales_report_${paddedMonth}_${year}.csv`;
+
+            // Instruct browser to download file
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+            // Don't format as JSON, just send the raw text
+            res.status(200).send(csvContent);
         } catch (error) {
             next(error);
         }

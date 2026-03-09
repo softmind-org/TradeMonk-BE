@@ -53,10 +53,15 @@ const favoriteController = {
                 .populate('product')
                 .sort('-createdAt');
 
+            // Sign images for the populated products
+            const { signImageUrls } = await import('../utils/s3.utils.js');
+            const products = favorites.map(fav => fav.product);
+            const signedProducts = await signImageUrls(products);
+
             res.status(200).json({
                 success: true,
-                count: favorites.length,
-                data: favorites.map(fav => fav.product),
+                count: signedProducts.length,
+                data: signedProducts,
             });
         } catch (error) {
             next(error);

@@ -176,9 +176,14 @@ const userController = {
             const refundRate = orders.length > 0 ? ((refundedOrders / orders.length) * 100).toFixed(1) : '0.0';
 
             // Top listing (highest price active listing)
-            const topListing = await Product.findOne({ 'seller.userId': seller._id, status: 'active' })
+            let topListing = await Product.findOne({ 'seller.userId': seller._id, status: 'active' })
                 .sort('-price')
                 .lean();
+
+            if (topListing) {
+                const { signImageUrls } = await import('../utils/s3.utils.js');
+                topListing = await signImageUrls(topListing);
+            }
 
             res.status(200).json({
                 success: true,
