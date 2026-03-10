@@ -1,5 +1,6 @@
 import Order from '../models/order.model.js';
 import Cart from '../models/cart.model.js';
+import Setting from '../models/setting.model.js';
 import crypto from 'crypto';
 import { signImageUrls } from '../utils/s3.utils.js';
 
@@ -9,6 +10,14 @@ const orderController = {
     // @access  Private
     createOrder: async (req, res, next) => {
         try {
+            // Check global marketplace mode first
+            const modeSetting = await Setting.findOne({ key: 'marketplaceMode' });
+            const isLive = modeSetting && modeSetting.value === 'live';
+            if (!isLive) {
+                res.status(403);
+                throw new Error('Orders cannot be created while the marketplace is in preparation mode.');
+            }
+
             const { items, totalAmount, sellerId, feeBreakdown, shippingAddress, paymentIntentId } = req.body;
 
             if (!items || items.length === 0) {

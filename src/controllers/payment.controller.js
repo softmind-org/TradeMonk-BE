@@ -1,5 +1,6 @@
 import stripe from '../config/stripe.config.js';
 import Cart from '../models/cart.model.js';
+import Setting from '../models/setting.model.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -16,6 +17,14 @@ const paymentController = {
     // @access  Private
     createPaymentIntent: async (req, res, next) => {
         try {
+            // Check global marketplace mode first
+            const modeSetting = await Setting.findOne({ key: 'marketplaceMode' });
+            const isLive = modeSetting && modeSetting.value === 'live';
+            if (!isLive) {
+                res.status(403);
+                throw new Error('Checkout is currently disabled while the marketplace is in preparation mode. No payments can be processed yet.');
+            }
+
             // Get ALL cart items (not filtered by seller)
             const cartItems = await Cart.find({ userId: req.user._id }).populate('productId');
 
