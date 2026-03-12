@@ -49,6 +49,18 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    // Marketplace Seller Details
+    storeName: {
+        type: String,
+    },
+    warehouseAddress: {
+        contactName: String,
+        phone: String,
+        addressLine1: String,
+        city: String,
+        postalCode: String,
+        country: String
+    },
     resetPasswordOtp: String,
     resetPasswordOtpExpiry: Date,
 }, {

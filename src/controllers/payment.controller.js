@@ -1,6 +1,7 @@
 import stripe from '../config/stripe.config.js';
 import Cart from '../models/cart.model.js';
 import Setting from '../models/setting.model.js';
+import sendcloudService from '../services/sendcloud.service.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -9,7 +10,7 @@ const COMMISSION_RATE = parseFloat(process.env.TRADEMONK_COMMISSION_RATE) || 0.0
 
 // Constants for Fee Calculations
 const STRIPE_PROCESSING_RATE = 0.032; // ~3.2% estimated Stripe processing fee
-const SHIPPING_PER_SELLER = 15.00; // in EUR
+const SHIPPING_PER_SELLER_FALLBACK = 15.00; // in EUR fallback
 
 const paymentController = {
     // @desc    Create Stripe PaymentIntent for the ENTIRE cart (all sellers)
@@ -37,6 +38,7 @@ const paymentController = {
             // Calculate total across ALL sellers
             let itemsTotal = 0;
             const sellerTotals = {};
+            const sellerIds = [];
 
             validItems.forEach(item => {
                 const lineTotal = item.productId.price * item.quantity;
@@ -46,12 +48,38 @@ const paymentController = {
                 const sellerId = item.productId.seller.userId.toString();
                 if (!sellerTotals[sellerId]) {
                     sellerTotals[sellerId] = 0;
+                    sellerIds.push(sellerId);
                 }
                 sellerTotals[sellerId] += lineTotal;
             });
 
-            const sellerCount = Object.keys(sellerTotals).length;
-            const shippingTotal = sellerCount * SHIPPING_PER_SELLER;
+            const { shippingTotal: frontendShippingTotal } = req.body || {};
+            
+            // Calculate shipping total
+            let shippingTotal = 0;
+            
+            if (frontendShippingTotal !== undefined && frontendShippingTotal !== null) {
+                // If the frontend calculated the shipping based on the user's SendCloud selection, use it
+                shippingTotal = parseFloat(frontendShippingTotal);
+            } else {
+                // Otherwise, calculate dynamic shipping total via SendCloud (default estimation)
+                for (const sId of sellerIds) {
+                    try {
+                        // Defaulting from DE to NL for estimation.
+                        const methods = await sendcloudService.getShippingMethods('DE', 'NL', 500);
+                        const validMethods = methods.filter(m => m.price != null && !isNaN(parseFloat(m.price)));
+                        const cheapest = validMethods.length > 0 
+                            ? Math.min(...validMethods.map(m => parseFloat(m.price))) 
+                            : 0; // Removed the 15 euro fallback
+                        shippingTotal += cheapest;
+                    } catch (err) {
+                        console.error(`SendCloud fallback triggered for seller ${sId}:`, err.message);
+                        shippingTotal += 0; // Removed the 15 euro fallback
+                    }
+                }
+            }
+
+            const sellerCount = sellerIds.length;
 
             itemsTotal = parseFloat(itemsTotal.toFixed(2));
 

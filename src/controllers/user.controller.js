@@ -1,6 +1,55 @@
 import userService from '../services/user.service.js';
 
 const userController = {
+    // Get logged in user profile
+    getProfile: async (req, res, next) => {
+        try {
+            const User = (await import('../models/user.model.js')).default;
+            const user = await User.findById(req.user._id);
+
+            if (!user) {
+                res.status(404);
+                throw new Error('User not found');
+            }
+
+            res.status(200).json({
+                success: true,
+                data: user
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    // Update user profile
+    updateProfile: async (req, res, next) => {
+        try {
+            const User = (await import('../models/user.model.js')).default;
+            const user = await User.findById(req.user._id);
+
+            if (!user) {
+                res.status(404);
+                throw new Error('User not found');
+            }
+
+            const { fullName, storeName, warehouseAddress } = req.body;
+
+            if (fullName !== undefined) user.fullName = fullName;
+            if (storeName !== undefined) user.storeName = storeName;
+            if (warehouseAddress !== undefined) user.warehouseAddress = warehouseAddress;
+
+            const updatedUser = await user.save({ validateBeforeSave: false });
+
+            res.status(200).json({
+                success: true,
+                message: 'Profile updated successfully',
+                data: updatedUser
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
+
     // Create a new user
     createUser: async (req, res, next) => {
         try {

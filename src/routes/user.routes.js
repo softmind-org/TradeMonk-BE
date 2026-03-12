@@ -6,6 +6,11 @@ const router = express.Router();
 
 router.use(protect);
 
+// User profile routes
+router.route('/profile')
+    .get(userController.getProfile)
+    .put(userController.updateProfile);
+
 router.route('/')
     .get(authorize('admin'), userController.getUsers)
     .post(authorize('admin'), userController.createUser);
