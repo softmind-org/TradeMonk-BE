@@ -12,7 +12,7 @@ const generateToken = (id) => {
 const authService = {
     // Register User
     register: async (userData) => {
-        const { fullName, email, password, role } = userData;
+        const { fullName, email, password, role, acceptedTerms, sellerType, businessName, registrationNumber, vatNumber, businessAddress } = userData;
 
         // Check if user exists
         const userExists = await User.findOne({ email });
@@ -20,13 +20,22 @@ const authService = {
             throw new Error('User already exists');
         }
 
+        // Build user data
+        const createData = { fullName, email, password, role, acceptedTerms };
+
+        // Attach seller-specific fields only for sellers
+        if (role === 'seller') {
+            createData.sellerType = sellerType;
+            if (sellerType === 'professional') {
+                createData.businessName = businessName;
+                createData.registrationNumber = registrationNumber;
+                createData.vatNumber = vatNumber;
+                createData.businessAddress = businessAddress;
+            }
+        }
+
         // Create user
-        const user = await User.create({
-            fullName,
-            email,
-            password,
-            role,
-        });
+        const user = await User.create(createData);
 
         if (user) {
             const token = generateToken(user._id);
@@ -35,13 +44,26 @@ const authService = {
             user.accessToken = token;
             await user.save();
 
-            return {
+            const responseData = {
                 _id: user._id,
                 fullName: user.fullName,
                 email: user.email,
                 role: user.role,
                 accessToken: token,
             };
+
+            // Include seller-specific fields in response
+            if (user.role === 'seller') {
+                responseData.sellerType = user.sellerType;
+                if (user.sellerType === 'professional') {
+                    responseData.businessName = user.businessName;
+                    responseData.registrationNumber = user.registrationNumber;
+                    responseData.vatNumber = user.vatNumber;
+                    responseData.businessAddress = user.businessAddress;
+                }
+            }
+
+            return responseData;
         } else {
             throw new Error('Invalid user data');
         }

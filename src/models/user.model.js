@@ -49,6 +49,31 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    acceptedTerms: {
+        type: Boolean,
+        default: false,
+    },
+    // Seller-specific fields
+    sellerType: {
+        type: String,
+        enum: ['private', 'professional'],
+    },
+    businessName: {
+        type: String,
+        trim: true,
+    },
+    registrationNumber: {
+        type: String,
+        trim: true,
+    },
+    vatNumber: {
+        type: String,
+        trim: true,
+    },
+    businessAddress: {
+        type: String,
+        trim: true,
+    },
     resetPasswordOtp: String,
     resetPasswordOtpExpiry: Date,
 }, {
