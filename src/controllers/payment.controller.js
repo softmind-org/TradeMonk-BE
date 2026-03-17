@@ -94,8 +94,9 @@ const paymentController = {
             const platformFee = parseFloat((itemsTotal * COMMISSION_RATE).toFixed(2));
 
             // 4. Final Seller Net
-            // Seller receives the Item Cost + Shipping, MINUS the TradeMonk fee, MINUS Stripe fee
-            const sellerNet = parseFloat((itemsTotal + shippingTotal - platformFee - stripeFee).toFixed(2));
+            // Seller receives ONLY the Item Cost, MINUS the TradeMonk fee, MINUS Stripe fee
+            // Shipping fees are retained by the platform (Admin) to pay for the labels.
+            const sellerNet = parseFloat((itemsTotal - platformFee - stripeFee).toFixed(2));
 
             // Convert to cents for Stripe
             const amountInCents = Math.round(buyerTotal * 100);
