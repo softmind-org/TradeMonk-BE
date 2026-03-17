@@ -41,7 +41,8 @@ const orderSchema = new mongoose.Schema({
         fullName: { type: String, required: true },
         address: { type: String, required: true },
         city: { type: String, required: true },
-        zipCode: { type: String, required: true }
+        zipCode: { type: String, required: true },
+        country: { type: String, required: true }
     },
     paymentStatus: {
         type: String,
@@ -63,6 +64,15 @@ const orderSchema = new mongoose.Schema({
         required: true
     },
     stripeTransferId: String,
+    
+    // --- SendCloud Shipping Fields ---
+    shippingMethodId: String, // ID of method selected during checkout
+    shippingMethodName: String, // E.g., 'DPD Home'
+    sendcloudParcelId: Number, // SendCloud's internal parcel ID
+    trackingUrl: String, // SendCloud tracking URL link
+    labelUrl: String, // Link to the generated PDF label
+    // ---------------------------------
+    
     trackingNumber: String, // Keeping this for backward compatibility, but moving to trackingDetails
     trackingDetails: {
         number: String,

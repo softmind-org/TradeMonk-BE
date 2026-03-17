@@ -18,7 +18,17 @@ const orderController = {
                 throw new Error('Orders cannot be created while the marketplace is in preparation mode.');
             }
 
-            const { items, totalAmount, sellerId, feeBreakdown, shippingAddress, paymentIntentId } = req.body;
+            const { 
+                items, 
+                totalAmount, 
+                sellerId, 
+                feeBreakdown, 
+                shippingAddress, 
+                shippingMethodName,
+                shippingMethodId,
+                shippingPrice,
+                paymentIntentId 
+            } = req.body;
 
             if (!items || items.length === 0) {
                 res.status(400);
@@ -41,6 +51,9 @@ const orderController = {
                 totalAmount,
                 feeBreakdown,
                 shippingAddress,
+                shippingMethodName,
+                shippingMethodId,
+                shippingPrice,
                 paymentStatus: 'paid',
                 orderStatus: 'processing',
                 transferStatus: 'pending',
