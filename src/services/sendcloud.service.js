@@ -99,13 +99,13 @@ const sendcloudService = {
                 description: (item.title || 'Product').substring(0, 50),
                 quantity: item.quantity || 1,
                 weight: "0.500",
-                value: String(item.price || '10.00'),
-                hs_code: '9504',           // Generic HS code for games/cards/collectibles
+                value: (item.price && !isNaN(item.price)) ? parseFloat(item.price).toFixed(2) : '10.00',
+                hs_code: '950410',           // More specific HS code (9504.10) for video games/electronic games
                 origin_country: sellerCountry // Required: country where the item was produced/shipped from
             }));
 
             // Fallback parcel item if order has no items
-            const fallbackParcelItems = [{ description: 'TradeMonk Order', quantity: 1, weight: '0.500', value: '10.00', hs_code: '9504', origin_country: sellerCountry }];
+            const fallbackParcelItems = [{ description: 'TradeMonk Order', quantity: 1, weight: '0.500', value: '10.00', hs_code: '950410', origin_country: sellerCountry }];
 
             // SendCloud V2 Carrier Enforcement: Sender name MUST be <= 35 characters.
             // Dashboard Default: "Andries Adrianus Johannes Reinier Verhagen" (42 chars) -> REJECTED.
@@ -130,8 +130,8 @@ const sendcloudService = {
                     address: street.substring(0, 35),
                     house_number: houseNumber.substring(0, 20),
                     city: (shippingAddress.city || '').substring(0, 30),
-                    postal_code: shippingAddress.zipCode.replace(/\s+/g, '').substring(0, 15),
-                    country: shippingAddress.country || 'NL',
+                    postal_code: (shippingAddress.zipCode || '').replace(/\s+/g, '').substring(0, 15),
+                    country: (shippingAddress.country || 'NL').toUpperCase().trim().substring(0, 2),
                     weight: "0.500",
                     shipment: {
                         id: parseInt(shippingMethodId)
@@ -143,6 +143,8 @@ const sendcloudService = {
                     parcel_items: mappedParcelItems.length > 0 ? mappedParcelItems : fallbackParcelItems
                 }
             };
+
+            console.log('Sending Parcel Request to SendCloud:', JSON.stringify(parcelPayload, null, 2));
 
             // If we have sender data, we manually map 'from_' fields to bypass dashboard name limits.
             // Note: SendCloud requires 'from_address_1' for the street.
