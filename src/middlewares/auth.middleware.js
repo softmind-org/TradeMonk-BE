@@ -32,6 +32,11 @@ export const protect = async (req, res, next) => {
             return next(new Error('User not found with this id'));
         }
 
+        if (user.status === 'suspended') {
+            res.status(401);
+            return next(new Error('Account suspended. Please contact support.'));
+        }
+
         if (token !== user.accessToken) {
             res.status(401);
             return next(new Error('Not authorized to access this route (Invalid Token)'));

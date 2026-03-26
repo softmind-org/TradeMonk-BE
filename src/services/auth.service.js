@@ -75,6 +75,11 @@ const authService = {
         const user = await User.findOne({ email }).select('+password');
 
         if (user && (await user.comparePassword(password))) {
+            // Check if user is suspended
+            if (user.status === 'suspended') {
+                throw new Error('Account suspended. Please contact support.');
+            }
+
             const token = generateToken(user._id);
 
             // Update token in DB
