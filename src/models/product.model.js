@@ -46,6 +46,7 @@ const productSchema = new mongoose.Schema({
     seller: {
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
         name: String,
+        sellerType: { type: String, enum: ['private', 'professional'] },
         reputation: String,
         positiveFeedback: String
     }

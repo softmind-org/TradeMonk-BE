@@ -105,6 +105,7 @@ const productController = {
             const sellerInfo = {
                 userId: req.user._id,
                 name: req.user.fullName,
+                sellerType: req.user.sellerType,
                 reputation: 'New Seller',
                 positiveFeedback: '100%'
             };
