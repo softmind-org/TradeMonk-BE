@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model.js';
 import sendEmail from '../utils/sendEmail.js';
+import { getSignedImageUrl } from '../utils/s3.utils.js';
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -61,6 +62,9 @@ const authService = {
                     responseData.vatNumber = user.vatNumber;
                     responseData.businessAddress = user.businessAddress;
                 }
+                if (user.storeLogo) {
+                    responseData.storeLogo = await getSignedImageUrl(user.storeLogo);
+                }
             }
 
             return responseData;
@@ -86,11 +90,17 @@ const authService = {
             user.accessToken = token;
             await user.save();
 
+            let signedStoreLogo;
+            if (user.storeLogo) {
+                signedStoreLogo = await getSignedImageUrl(user.storeLogo);
+            }
+
             return {
                 _id: user._id,
                 fullName: user.fullName,
                 email: user.email,
                 role: user.role,
+                storeLogo: signedStoreLogo,
                 accessToken: token,
             };
         } else {

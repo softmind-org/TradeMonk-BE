@@ -40,27 +40,28 @@ const userController = {
 
             const { fullName, storeName, warehouseAddress } = req.body;
 
-            if (fullName !== undefined) user.fullName = fullName;
-            if (storeName !== undefined) user.storeName = storeName;
+            const updateFields = {};
+            if (fullName !== undefined) updateFields.fullName = fullName;
+            if (storeName !== undefined) updateFields.storeName = storeName;
             
             // Handle logo upload using S3 middleware configuration
             if (req.file) {
-                user.storeLogo = req.file.key || req.file.location;
+                updateFields.storeLogo = req.file.key || req.file.location;
             }
 
             if (warehouseAddress !== undefined) {
                 if (typeof warehouseAddress === 'string') {
                     try {
-                        user.warehouseAddress = JSON.parse(warehouseAddress);
+                        updateFields.warehouseAddress = JSON.parse(warehouseAddress);
                     } catch (e) {
                         // fallback if unparseable
                     }
                 } else {
-                    user.warehouseAddress = warehouseAddress;
+                    updateFields.warehouseAddress = warehouseAddress;
                 }
             }
 
-            const updatedUser = await user.save({ validateBeforeSave: false });
+            const updatedUser = await User.findByIdAndUpdate(req.user._id, { $set: updateFields }, { new: true });
 
             const userObj = updatedUser.toObject();
             if (userObj.storeLogo) {
