@@ -7,10 +7,14 @@ const productController = {
     // @access  Public
     getProducts: async (req, res, next) => {
         try {
-            const { game, condition, minPrice, maxPrice, sort, page = 1, limit = 20 } = req.query;
+            const { game, condition, minPrice, maxPrice, sort, keyword, page = 1, limit = 20 } = req.query;
 
             // Build Query
             const query = { status: 'active' };
+
+            if (keyword && keyword.trim() !== '') {
+                query.title = { $regex: keyword.trim(), $options: 'i' };
+            }
 
             if (game && game !== 'All') {
                 query.gameSystem = game;

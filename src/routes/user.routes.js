@@ -1,6 +1,7 @@
 import express from 'express';
 import userController from '../controllers/user.controller.js';
 import { protect, authorize } from '../middlewares/auth.middleware.js';
+import upload from '../middlewares/upload.middleware.js';
 
 const router = express.Router();
 
@@ -9,7 +10,7 @@ router.use(protect);
 // User profile routes
 router.route('/profile')
     .get(userController.getProfile)
-    .put(userController.updateProfile);
+    .put(upload.single('storeLogo'), userController.updateProfile);
 
 router.route('/')
     .get(authorize('admin'), userController.getUsers)

@@ -53,6 +53,9 @@ const userSchema = new mongoose.Schema({
     storeName: {
         type: String,
     },
+    storeLogo: {
+        type: String,
+    },
     warehouseAddress: {
         contactName: String,
         phone: String,

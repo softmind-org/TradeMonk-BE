@@ -1,4 +1,5 @@
 import userService from '../services/user.service.js';
+import { getSignedImageUrl } from '../utils/s3.utils.js';
 
 const userController = {
     // Get logged in user profile
@@ -12,9 +13,14 @@ const userController = {
                 throw new Error('User not found');
             }
 
+            const userObj = user.toObject();
+            if (userObj.storeLogo) {
+                userObj.storeLogo = await getSignedImageUrl(userObj.storeLogo);
+            }
+
             res.status(200).json({
                 success: true,
-                data: user
+                data: userObj
             });
         } catch (error) {
             next(error);
@@ -36,14 +42,35 @@ const userController = {
 
             if (fullName !== undefined) user.fullName = fullName;
             if (storeName !== undefined) user.storeName = storeName;
-            if (warehouseAddress !== undefined) user.warehouseAddress = warehouseAddress;
+            
+            // Handle logo upload using S3 middleware configuration
+            if (req.file) {
+                user.storeLogo = req.file.key || req.file.location;
+            }
+
+            if (warehouseAddress !== undefined) {
+                if (typeof warehouseAddress === 'string') {
+                    try {
+                        user.warehouseAddress = JSON.parse(warehouseAddress);
+                    } catch (e) {
+                        // fallback if unparseable
+                    }
+                } else {
+                    user.warehouseAddress = warehouseAddress;
+                }
+            }
 
             const updatedUser = await user.save({ validateBeforeSave: false });
+
+            const userObj = updatedUser.toObject();
+            if (userObj.storeLogo) {
+                userObj.storeLogo = await getSignedImageUrl(userObj.storeLogo);
+            }
 
             res.status(200).json({
                 success: true,
                 message: 'Profile updated successfully',
-                data: updatedUser
+                data: userObj
             });
         } catch (error) {
             next(error);
