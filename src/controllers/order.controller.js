@@ -1,6 +1,7 @@
 import Order from '../models/order.model.js';
 import Cart from '../models/cart.model.js';
 import Setting from '../models/setting.model.js';
+import Product from '../models/product.model.js';
 import crypto from 'crypto';
 import { signImageUrls } from '../utils/s3.utils.js';
 
@@ -59,6 +60,22 @@ const orderController = {
                 transferStatus: 'pending',
                 paymentIntentId
             });
+
+            // Execute the Inventory Deduction Pipeline
+            for (const item of items) {
+                const product = await Product.findById(item.productId);
+                if (product) {
+                    // Instantly subtract the purchased amount securely
+                    product.quantity = Math.max(0, product.quantity - item.quantity);
+                    
+                    // If stock reaches 0, trigger automatic "Sold" status flag
+                    if (product.quantity === 0) {
+                        product.status = 'sold';
+                    }
+                    
+                    await product.save();
+                }
+            }
 
             // Clear only this seller's items from cart (not entire cart)
             const productIds = items.map(item => item.productId);

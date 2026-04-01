@@ -41,6 +41,11 @@ const paymentController = {
             const sellerIds = [];
 
             validItems.forEach(item => {
+                if (item.quantity > item.productId.quantity) {
+                    res.status(400);
+                    throw new Error(`Checkout aborted: The item '${item.productId.title}' only has ${item.productId.quantity} in stock.`);
+                }
+
                 const lineTotal = item.productId.price * item.quantity;
                 itemsTotal += lineTotal;
 

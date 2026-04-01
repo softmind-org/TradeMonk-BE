@@ -91,6 +91,11 @@ const cartController = {
                 throw new Error('Product not found');
             }
 
+            if (quantity > product.quantity) {
+                res.status(400);
+                throw new Error(`Only ${product.quantity} units available in stock.`);
+            }
+
             // Check if item already in cart
             let cartItem = await Cart.findOne({ userId: req.user._id, productId });
 
