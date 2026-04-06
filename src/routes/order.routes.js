@@ -20,6 +20,7 @@ router.route('/seller')
 
 // Admin endpoints (Must be before /:id)
 router.get('/all', authorize('admin'), orderController.getAllOrders);
+router.get('/payment-stats', authorize('admin'), orderController.getPaymentStats);
 
 router.route('/:id/status')
     .patch(orderController.updateOrderStatus);

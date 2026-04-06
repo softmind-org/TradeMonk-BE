@@ -367,6 +367,57 @@ const orderController = {
         } catch (error) {
             next(error);
         }
+    },
+
+    // @desc    Get payment stats for admin dashboard (GMV, Revenue, Growth)
+    // @route   GET /api/v1/orders/payment-stats
+    // @access  Private (Admin)
+    getPaymentStats: async (req, res, next) => {
+        try {
+            // Aggregate totals from all paid orders
+            const [totals] = await Order.aggregate([
+                { $match: { paymentStatus: 'paid' } },
+                {
+                    $group: {
+                        _id: null,
+                        totalGmv: { $sum: '$totalAmount' },
+                        marketplaceRevenue: { $sum: '$feeBreakdown.platformFee' }
+                    }
+                }
+            ]);
+
+            // Month-over-month growth calculation
+            const now = new Date();
+            const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+            const [currentMonth] = await Order.aggregate([
+                { $match: { paymentStatus: 'paid', createdAt: { $gte: currentMonthStart } } },
+                { $group: { _id: null, revenue: { $sum: '$feeBreakdown.platformFee' } } }
+            ]);
+
+            const [previousMonth] = await Order.aggregate([
+                { $match: { paymentStatus: 'paid', createdAt: { $gte: previousMonthStart, $lt: currentMonthStart } } },
+                { $group: { _id: null, revenue: { $sum: '$feeBreakdown.platformFee' } } }
+            ]);
+
+            const currentRev = currentMonth?.revenue || 0;
+            const previousRev = previousMonth?.revenue || 0;
+            const growthPercent = previousRev > 0
+                ? parseFloat((((currentRev - previousRev) / previousRev) * 100).toFixed(1))
+                : currentRev > 0 ? 100 : 0;
+
+            res.status(200).json({
+                success: true,
+                data: {
+                    totalGmv: totals?.totalGmv || 0,
+                    marketplaceRevenue: totals?.marketplaceRevenue || 0,
+                    growthPercent
+                }
+            });
+        } catch (error) {
+            next(error);
+        }
     }
 };
 
