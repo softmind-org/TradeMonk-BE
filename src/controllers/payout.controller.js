@@ -2,6 +2,7 @@ import stripe from '../config/stripe.config.js';
 import Order from '../models/order.model.js';
 import User from '../models/user.model.js';
 import dotenv from 'dotenv';
+import { createNotification, notifyAdmins } from '../utils/notification.utils.js';
 
 dotenv.config();
 
@@ -136,7 +137,24 @@ const payoutController = {
                 }
             });
 
+            // Notify seller of successful payout
+            createNotification({
+                userId: sellerId,
+                role: 'seller',
+                type: 'payout_processed',
+                title: 'Payout Processed',
+                message: `€${totalPayout.toFixed(2)} has been transferred to your Stripe account for ${eligibleOrders.length} order(s).`,
+                metadata: { transferId: transfer.id, amount: totalPayout }
+            });
+
         } catch (error) {
+            // Notify admins of payout failure
+            notifyAdmins({
+                type: 'payout_failed',
+                title: 'Payout Alert',
+                message: `A payout request failed: ${error.message}`,
+                metadata: { sellerId: req.user?._id?.toString() }
+            });
             next(error);
         }
     }

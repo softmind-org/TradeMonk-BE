@@ -1,4 +1,5 @@
 import authService from '../services/auth.service.js';
+import { notifyAdmins } from '../utils/notification.utils.js';
 
 const authController = {
     // @desc    Register new user
@@ -11,6 +12,16 @@ const authController = {
                 success: true,
                 data: user,
             });
+
+            // Notify admins when a new seller registers
+            if (user.role === 'seller') {
+                notifyAdmins({
+                    type: 'new_seller',
+                    title: 'New Seller Registered',
+                    message: `${user.fullName || user.email} just registered as a seller and is pending review.`,
+                    metadata: { userId: user._id, email: user.email }
+                });
+            }
         } catch (error) {
             if (error.message === 'User already exists') {
                 res.status(400);

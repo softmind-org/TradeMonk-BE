@@ -12,6 +12,10 @@ router.route('/profile')
     .get(userController.getProfile)
     .put(upload.single('storeLogo'), userController.updateProfile);
 
+// User stats route
+router.route('/stats')
+    .get(userController.getMyStats);
+
 router.route('/')
     .get(authorize('admin'), userController.getUsers)
     .post(authorize('admin'), userController.createUser);

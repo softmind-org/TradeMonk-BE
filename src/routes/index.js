@@ -11,6 +11,7 @@ import payoutRoutes from './payout.routes.js';
 import categoryRoutes from './category.routes.js';
 import settingRoutes from './setting.routes.js';
 import shippingRoutes from './shipping.routes.js';
+import notificationRoutes from './notification.routes.js';
 
 const router = express.Router();
 
@@ -26,5 +27,6 @@ router.use('/payouts', payoutRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/settings', settingRoutes);
 router.use('/shipping', shippingRoutes);
+router.use('/notifications', notificationRoutes);
 
 export default router;

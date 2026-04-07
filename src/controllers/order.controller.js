@@ -4,6 +4,7 @@ import Setting from '../models/setting.model.js';
 import Product from '../models/product.model.js';
 import crypto from 'crypto';
 import { signImageUrls } from '../utils/s3.utils.js';
+import { createNotification, notifyAdmins } from '../utils/notification.utils.js';
 
 const orderController = {
     // @desc    Create new order (per-seller) and clear seller's items from cart
@@ -87,6 +88,37 @@ const orderController = {
             res.status(201).json({
                 success: true,
                 data: order
+            });
+
+            // --- Fire-and-forget Notifications (non-blocking) ---
+            const firstItemTitle = items[0]?.title || 'your item';
+
+            // Buyer: order placement confirmation
+            createNotification({
+                userId: req.user._id,
+                role: req.user.role,
+                type: 'order_placed',
+                title: 'Order Placed Successfully',
+                message: `Your order for "${firstItemTitle}" has been placed and is being processed.`,
+                metadata: { orderId: order._id, orderNumber: order.orderNumber }
+            });
+
+            // Seller: new sale alert
+            createNotification({
+                userId: sellerId,
+                role: 'seller',
+                type: 'new_sale',
+                title: 'New Sale!',
+                message: `You have a new order (${order.orderNumber}) for "${firstItemTitle}".`,
+                metadata: { orderId: order._id, orderNumber: order.orderNumber }
+            });
+
+            // Admins: new order placed
+            notifyAdmins({
+                type: 'new_order',
+                title: 'New Order Placed',
+                message: `Order ${order.orderNumber} was placed for "${firstItemTitle}".`,
+                metadata: { orderId: order._id, orderNumber: order.orderNumber }
             });
         } catch (error) {
             next(error);
@@ -267,6 +299,37 @@ const orderController = {
                 message: `Order marked as ${status}`,
                 data: order
             });
+
+            // --- Fire-and-forget Buyer Notification ---
+            const statusNotifications = {
+                confirmed: {
+                    type: 'order_confirmed',
+                    title: 'Order Confirmed',
+                    message: `Your order ${order.orderNumber} has been confirmed by the seller.`
+                },
+                shipped: {
+                    type: 'order_shipped',
+                    title: 'Your Order is on the Way!',
+                    message: `Order ${order.orderNumber} has been shipped.${order.trackingDetails?.number ? ` Tracking: ${order.trackingDetails.number}` : ''}`
+                },
+                delivered: {
+                    type: 'order_delivered',
+                    title: 'Order Delivered',
+                    message: `Order ${order.orderNumber} has been marked as delivered.`
+                }
+            };
+
+            if (statusNotifications[status]) {
+                const { type, title, message } = statusNotifications[status];
+                createNotification({
+                    userId: order.userId,
+                    role: 'buyer',
+                    type,
+                    title,
+                    message,
+                    metadata: { orderId: order._id, orderNumber: order.orderNumber }
+                });
+            }
         } catch (error) {
             next(error);
         }

@@ -116,6 +116,10 @@ const authService = {
             throw new Error('User not found');
         }
 
+        if (user.status === 'suspended') {
+            throw new Error('Account suspended. Please contact support.');
+        }
+
         // Generate 6 digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -198,6 +202,10 @@ const authService = {
 
         if (!user) {
             throw new Error('Invalid OTP or Token Expired');
+        }
+
+        if (user.status === 'suspended') {
+            throw new Error('Account suspended. Please contact support.');
         }
 
         // Set new password

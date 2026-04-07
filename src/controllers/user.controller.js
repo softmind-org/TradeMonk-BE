@@ -78,6 +78,43 @@ const userController = {
         }
     },
 
+    // Get logged in user stats (Buyer/Collector perspective)
+    getMyStats: async (req, res, next) => {
+        try {
+            const Order = (await import('../models/order.model.js')).default;
+            const Favorite = (await import('../models/favorite.model.js')).default;
+
+            const userId = req.user._id;
+
+            // 1. Active Orders: Orders placed by the user that are valid but not yet fully delivered/cancelled.
+            // For example: processing, shipped, confirmed.
+            const activeOrders = await Order.countDocuments({
+                userId,
+                orderStatus: { $in: ['processing', 'shipped', 'confirmed'] }
+            });
+
+            // 2. Total Purchases: Orders that user has paid for (or successfully completed).
+            const totalPurchases = await Order.countDocuments({
+                userId,
+                paymentStatus: 'paid'
+            });
+
+            // 3. Saved Items (Favorites)
+            const savedItems = await Favorite.countDocuments({ user: userId });
+
+            res.status(200).json({
+                success: true,
+                data: {
+                    activeOrders,
+                    totalPurchases,
+                    savedItems
+                }
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
+
     // Create a new user
     createUser: async (req, res, next) => {
         try {
