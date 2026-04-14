@@ -269,6 +269,12 @@ const orderController = {
                 throw new Error('Unauthorized — not your order');
             }
 
+            // Backward compatibility for old test orders missing the country field
+            if (order.shippingAddress && !order.shippingAddress.country) {
+                // If it's missing, default to NL so Mongoose validation passes on .save()
+                order.shippingAddress.country = 'NL';
+            }
+
             // Handle status-specific logic
             if (status === 'shipped') {
                 // If tracking data wasn't explicitly provided in this request, we'll allow it anyway 

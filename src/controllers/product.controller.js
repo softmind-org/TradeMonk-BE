@@ -116,6 +116,12 @@ const productController = {
 
             const productData = { ...req.body, seller: sellerInfo };
 
+            // STRICT VALIDATION: Ensure BOTH images are provided
+            if (!req.files || !req.files.images || !req.files.backImage) {
+                res.status(400);
+                throw new Error('Please upload both front and back images for the card.');
+            }
+
             // Handle images upload — store S3 key (not full URL) for private bucket signing
             if (req.files) {
                 if (req.files.images) {
