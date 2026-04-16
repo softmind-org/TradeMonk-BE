@@ -13,6 +13,9 @@ router.post('/estimate', shippingController.estimateShipping);
 // POST generate label (Seller/Admin)
 router.post('/label', protect, authorize('seller', 'admin'), shippingController.generateLabel);
 
+// GET proxy to safely download SendCloud PDF label (Seller/Admin)
+router.get('/label/:orderId', protect, authorize('seller', 'admin'), shippingController.downloadLabelProxy);
+
 // GET tracking info (Buyer/Seller/Admin)
 router.get('/tracking/:orderId', protect, shippingController.getTrackingInfo);
 

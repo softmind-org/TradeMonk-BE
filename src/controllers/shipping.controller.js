@@ -263,6 +263,50 @@ const shippingController = {
         }
     },
 
+    // @desc    Download label via proxy to bypass 401 frontend error
+    // @route   GET /api/v1/shipping/label/:orderId
+    // @access  Private (Seller/Admin)
+    downloadLabelProxy: async (req, res, next) => {
+        try {
+            const Order = (await import('../models/order.model.js')).default;
+            const order = await Order.findById(req.params.orderId);
+
+            if (!order || !order.labelUrl) {
+                res.status(404);
+                throw new Error('Label not found for this order');
+            }
+
+            // Verify ownership
+            if (order.sellerId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+                res.status(403);
+                throw new Error('Not authorized to download this label');
+            }
+
+            const axios = (await import('axios')).default;
+            
+            // Create Basic Auth token for SendCloud
+            const auth = Buffer.from(`${process.env.SENDCLOUD_PUBLIC_KEY}:${process.env.SENDCLOUD_SECRET_KEY}`).toString('base64');
+            
+            const response = await axios({
+                method: 'GET',
+                url: order.labelUrl,
+                responseType: 'stream',
+                headers: {
+                    Authorization: `Basic ${auth}`
+                }
+            });
+
+            // Set headers for PDF download
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename="shipping_label_${order.orderNumber || order._id}.pdf"`);
+            
+            // Pipe the PDF directly to the client response
+            response.data.pipe(res);
+        } catch (error) {
+            next(error);
+        }
+    },
+
     // @desc    Get tracking info
     // @route   GET /api/v1/shipping/tracking/:orderId
     // @access  Private (Buyer/Seller/Admin)
