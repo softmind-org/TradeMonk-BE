@@ -6,6 +6,7 @@ const router = express.Router();
 
 // Payout routes — seller gets balance and triggers payout
 router.get('/balance', protect, authorize('seller', 'admin'), payoutController.getPayoutBalance);
+router.get('/history', protect, authorize('seller', 'admin'), payoutController.getPayoutHistory);
 router.post('/request', protect, authorize('seller', 'admin'), payoutController.requestPayout);
 
 export default router;

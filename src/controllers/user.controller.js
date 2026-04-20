@@ -1,11 +1,14 @@
 import userService from '../services/user.service.js';
 import { getSignedImageUrl } from '../utils/s3.utils.js';
+import User from '../models/user.model.js';
+import Order from '../models/order.model.js';
+import Product from '../models/product.model.js';
+import Favorite from '../models/favorite.model.js';
 
 const userController = {
     // Get logged in user profile
     getProfile: async (req, res, next) => {
         try {
-            const User = (await import('../models/user.model.js')).default;
             const user = await User.findById(req.user._id);
 
             if (!user) {
@@ -30,7 +33,6 @@ const userController = {
     // Update user profile
     updateProfile: async (req, res, next) => {
         try {
-            const User = (await import('../models/user.model.js')).default;
             const user = await User.findById(req.user._id);
 
             if (!user) {
@@ -78,40 +80,137 @@ const userController = {
         }
     },
 
-    // Get logged in user stats (Buyer/Collector perspective)
+    // Get logged in user stats (Buyer/Collector/Seller perspective)
     getMyStats: async (req, res, next) => {
         try {
-            const Order = (await import('../models/order.model.js')).default;
-            const Favorite = (await import('../models/favorite.model.js')).default;
+            const userId = req.user?._id;
+            const userRole = req.user?.role?.toLowerCase();
+            
+            console.log(`[DEBUG] getMyStats for user: ${userId}, role: ${userRole}`);
 
-            const userId = req.user._id;
+            if (!userId) {
+                return res.status(401).json({ success: false, message: 'Not authorized' });
+            }
 
-            // 1. Active Orders: Orders placed by the user that are valid but not yet fully delivered/cancelled.
-            // For example: processing, shipped, confirmed.
-            const activeOrders = await Order.countDocuments({
-                userId,
-                orderStatus: { $in: ['processing', 'shipped', 'confirmed'] }
-            });
+            if (userRole === 'seller') {
+                try {
+                    // 1. Total Sales (GMV) - Sum of totalAmount for paid orders where user is seller
+                    const salesOrders = await Order.find({
+                        sellerId: userId,
+                        paymentStatus: 'paid'
+                    }).lean();
+                    
 
-            // 2. Total Purchases: Orders that user has paid for (or successfully completed).
-            const totalPurchases = await Order.countDocuments({
-                userId,
-                paymentStatus: 'paid'
-            });
+                    const totalSales = salesOrders.reduce((sum, order) => {
+                        return sum + (Number(order?.totalAmount) || 0);
+                    }, 0);
 
-            // 3. Saved Items (Favorites)
-            const savedItems = await Favorite.countDocuments({ user: userId });
+                    const totalSalesNet = salesOrders.reduce((sum, order) => {
+                        return sum + (Number(order?.feeBreakdown?.sellerNet) || 0);
+                    }, 0);
 
-            res.status(200).json({
-                success: true,
-                data: {
-                    activeOrders,
-                    totalPurchases,
-                    savedItems
+                    // 2. Active Listings
+                    const activeListings = await Product.countDocuments({
+                        'seller.userId': userId,
+                        status: 'active'
+                    }).catch(e => 0);
+
+                    // 3. Pending Orders (Seller perspective: Confirmed but not yet shipped)
+                    const pendingOrdersCount = await Order.countDocuments({
+                        sellerId: userId,
+                        orderStatus: 'confirmed'
+                    }).catch(e => 0);
+
+                    // 4. Recent Activity (Latest 5 items)
+                    const recentOrders = await Order.find({ sellerId: userId })
+                        .sort({ createdAt: -1 })
+                        .limit(5)
+                        .lean()
+                        .catch(e => []);
+                    
+                    const recentProducts = await Product.find({ 'seller.userId': userId })
+                        .sort({ createdAt: -1 })
+                        .limit(5)
+                        .lean()
+                        .catch(e => []);
+
+                    const recentActivity = [
+                        ...recentOrders.map(o => ({
+                            id: `ord-${o?._id}`,
+                            action: `${o?.items?.[0]?.title || 'Item'} Sold`,
+                            time: o?.createdAt || new Date(),
+                            type: 'sale'
+                        })),
+                        ...recentProducts.map(p => ({
+                            id: `prod-${p?._id}`,
+                            action: `New Listing: ${p?.name}`,
+                            time: p?.createdAt || new Date(),
+                            type: 'listing'
+                        }))
+                    ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 5);
+
+                    return res.status(200).json({
+                        success: true,
+                        data: {
+                            totalSales,
+                            totalSalesNet,
+                            activeListings,
+                            pendingOrdersCount,
+                            recentActivity,
+                            storeRating: 4.9,
+                            followers: 0
+                        }
+                    });
+                } catch (innerError) {
+                    console.error('[SELLER_STATS_ERROR] Calculating seller stats:', innerError);
+                    return res.status(500).json({
+                        success: false,
+                        message: `Seller Stats Error: ${innerError.message}`
+                    });
                 }
-            });
+            }
+
+            // Buyer / Collector stats (Fallback or for Admin/Buyer)
+            try {
+                const activeOrders = await Order.countDocuments({
+                    userId,
+                    orderStatus: { $in: ['processing', 'shipped', 'confirmed'] }
+                }).catch(e => {
+                    console.error('[BUYER_STATS_COUNT_ERROR] Order.countDocuments failed:', e);
+                    return 0;
+                });
+
+                const totalPurchases = await Order.countDocuments({
+                    userId,
+                    paymentStatus: 'paid'
+                }).catch(e => 0);
+
+                const savedItems = await Favorite.countDocuments({ user: userId }).catch(e => {
+                    console.error('[BUYER_STATS_FAVORITE_ERROR] Favorite.countDocuments failed:', e);
+                    return 0;
+                });
+
+                return res.status(200).json({
+                    success: true,
+                    data: {
+                        activeOrders,
+                        totalPurchases,
+                        savedItems
+                    }
+                });
+            } catch (innerError) {
+                console.error('[BUYER_STATS_ERROR] Calculating buyer stats:', innerError);
+                return res.status(500).json({
+                    success: false,
+                    message: `Buyer Stats Error: ${innerError.message}`
+                });
+            }
         } catch (error) {
-            next(error);
+            console.error('[CRITICAL_STATS_ERROR] in getMyStats:', error);
+            res.status(500).json({
+                success: false,
+                message: `Critical Stats Error: ${error.message}`
+            });
         }
     },
 
@@ -155,9 +254,6 @@ const userController = {
                 res.status(404);
                 throw new Error('User not found');
             }
-
-            // Get stats (this is simplified, optimally this would be in the service and use aggregation)
-            const Order = (await import('../models/order.model.js')).default;
 
             // Stats for buyer
             let purchasesCount = 0;
@@ -229,10 +325,6 @@ const userController = {
     // @access  Private (Admin)
     getSellers: async (req, res, next) => {
         try {
-            const User = (await import('../models/user.model.js')).default;
-            const Product = (await import('../models/product.model.js')).default;
-            const Order = (await import('../models/order.model.js')).default;
-
             const sellers = await User.find({ role: 'seller' }).sort('-createdAt');
 
             // Enrich each seller with listing count and GMV
@@ -272,10 +364,6 @@ const userController = {
     // @access  Private (Admin)
     getSellerDetail: async (req, res, next) => {
         try {
-            const User = (await import('../models/user.model.js')).default;
-            const Product = (await import('../models/product.model.js')).default;
-            const Order = (await import('../models/order.model.js')).default;
-
             const seller = await User.findById(req.params.id);
             if (!seller || seller.role !== 'seller') {
                 res.status(404);

@@ -157,6 +157,48 @@ const payoutController = {
             });
             next(error);
         }
+    },
+
+    // @desc    Get seller's payout history (processed transfers)
+    // @route   GET /api/v1/payouts/history
+    // @access  Private (Seller)
+    getPayoutHistory: async (req, res, next) => {
+        try {
+            const userId = req.user._id;
+
+            // Group orders by stripeTransferId to get unique payout events
+            const history = await Order.aggregate([
+                { 
+                    $match: { 
+                        sellerId: userId,
+                        transferStatus: 'paid',
+                        stripeTransferId: { $exists: true, $ne: null }
+                    } 
+                },
+                {
+                    $group: {
+                        _id: '$stripeTransferId',
+                        amount: { $sum: '$feeBreakdown.sellerNet' },
+                        date: { $max: '$updatedAt' },
+                        orderCount: { $sum: 1 }
+                    }
+                },
+                { $sort: { date: -1 } }
+            ]);
+
+            res.status(200).json({
+                success: true,
+                data: history.map(item => ({
+                    id: item._id,
+                    amount: parseFloat(item.amount.toFixed(2)),
+                    date: item.date,
+                    status: 'SUCCESSFUL', // Stripe transfers are typically immediate/success in this flow
+                    orderCount: item.orderCount
+                }))
+            });
+        } catch (error) {
+            next(error);
+        }
     }
 };
 
