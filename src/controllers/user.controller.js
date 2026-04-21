@@ -284,6 +284,45 @@ const userController = {
         }
     },
 
+    // @desc    Update user details (Admin)
+    // @route   PUT /api/v1/users/:id
+    // @access  Private (Admin)
+    adminUpdateUser: async (req, res, next) => {
+        try {
+            const { fullName, email } = req.body;
+            const userId = req.params.id;
+
+            const user = await User.findById(userId);
+            if (!user) {
+                res.status(404);
+                throw new Error('User not found');
+            }
+
+            // Check if email is already taken by another user
+            if (email && email !== user.email) {
+                const existingUser = await User.findOne({ email });
+                if (existingUser) {
+                    res.status(400);
+                    throw new Error('Email is already in use by another account');
+                }
+            }
+
+            const updatedUser = await User.findByIdAndUpdate(
+                userId,
+                { $set: { fullName, email } },
+                { new: true, runValidators: true }
+            );
+
+            res.status(200).json({
+                success: true,
+                message: 'User updated successfully',
+                data: updatedUser
+            });
+        } catch (error) {
+            next(error);
+        }
+    },
+
     // Toggle user status
     toggleUserStatus: async (req, res, next) => {
         try {

@@ -25,7 +25,8 @@ router.get('/sellers', authorize('admin'), userController.getSellers);
 router.get('/sellers/:id', authorize('admin'), userController.getSellerDetail);
 
 router.route('/:id')
-    .get(authorize('admin'), userController.getUserById);
+    .get(authorize('admin'), userController.getUserById)
+    .put(authorize('admin'), userController.adminUpdateUser);
 
 router.route('/:id/status')
     .patch(authorize('admin'), userController.toggleUserStatus);
