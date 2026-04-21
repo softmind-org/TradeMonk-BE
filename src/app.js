@@ -26,7 +26,8 @@ app.post('/api/v1/stripe/webhooks',
 );
 
 // JSON body parser (after webhook route)
-app.use(express.json());
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
 }
