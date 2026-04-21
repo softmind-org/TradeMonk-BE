@@ -34,7 +34,9 @@ const orderSchema = new mongoose.Schema({
         itemsTotal: Number,
         shippingFee: Number,
         stripeFee: Number,
-        platformFee: Number,
+        platformFee: Number, // Gross (Inclusive of VAT)
+        platformFeeNet: Number, // Net (Excl. VAT)
+        platformFeeVat: Number, // 21% VAT portion
         sellerNet: Number
     },
     shippingAddress: {

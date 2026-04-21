@@ -96,10 +96,13 @@ const paymentController = {
             const stripeFee = parseFloat((buyerTotal * STRIPE_PROCESSING_RATE).toFixed(2));
 
             // 3. TradeMonk commission (3.5% of the ITEM COST only, not shipping)
+            // This 3.5% is GROSS (inclusive of 21% VAT) as per client requirements
             const platformFee = parseFloat((itemsTotal * COMMISSION_RATE).toFixed(2));
+            const platformFeeNet = parseFloat((platformFee / 1.21).toFixed(2));
+            const platformFeeVat = parseFloat((platformFee - platformFeeNet).toFixed(2));
 
             // 4. Final Seller Net
-            // Seller receives ONLY the Item Cost, MINUS the TradeMonk fee, MINUS Stripe fee
+            // Seller receives ONLY the Item Cost, MINUS the TradeMonk fee (Gross), MINUS Stripe fee
             // Shipping fees are retained by the platform (Admin) to pay for the labels.
             const sellerNet = parseFloat((itemsTotal - platformFee - stripeFee).toFixed(2));
 
@@ -116,6 +119,8 @@ const paymentController = {
                     shippingTotal: shippingTotal.toString(),
                     stripeFee: stripeFee.toString(),
                     platformFee: platformFee.toString(),
+                    platformFeeNet: platformFeeNet.toString(),
+                    platformFeeVat: platformFeeVat.toString(),
                     sellerNet: sellerNet.toString(),
                     sellerCount: sellerCount.toString(),
                 },
@@ -134,6 +139,8 @@ const paymentController = {
                     shippingTotal,
                     buyerTotal,
                     platformFee,
+                    platformFeeNet,
+                    platformFeeVat,
                     sellerNet,
                     currency: 'EUR',
                     sellerTotals, // { sellerId: amount } for frontend reference
