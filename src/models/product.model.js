@@ -8,7 +8,7 @@ const productSchema = new mongoose.Schema({
     gameSystem: {
         type: String,
         required: true,
-        enum: ['Pokémon', 'Yu-Gi-Oh!', 'Magic', 'Sports', 'Yu-Gi-Oh', 'Magic: The Gathering'], // Expanded for compatibility
+        enum: ['Pokémon', 'Pokemon', 'Yu-Gi-Oh!', 'Magic', 'Sports', 'Yu-Gi-Oh', 'Magic: The Gathering'], // Expanded for compatibility
         index: true
     },
 
