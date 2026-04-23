@@ -48,20 +48,46 @@ if (BUCKET) {
     console.warn('⚠️  AWS_S3_BUCKET not set — using local disk storage (public/uploads/products/)');
 }
 
+// Dedicated local storage for CSV files (must be local for stream processing)
+const csvStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const dir = 'public/uploads/temp';
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        cb(null, dir);
+    },
+    filename: function (req, file, cb) {
+        cb(null, `bulk-${Date.now()}-${file.originalname}`);
+    }
+});
+
+export const csvUpload = multer({
+    storage: csvStorage,
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB for CSV
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype === 'text/csv' || path.extname(file.originalname).toLowerCase() === '.csv') {
+            cb(null, true);
+        } else {
+            cb(new Error('Only CSV files are allowed!'), false);
+        }
+    }
+});
+
 const upload = multer({
     storage,
     limits: {
         fileSize: 20 * 1024 * 1024, // 20MB limit
     },
     fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|webp/;
+        const allowedTypes = /jpeg|jpg|png|webp|csv/; // Added csv
         const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
         const mimetype = allowedTypes.test(file.mimetype);
 
-        if (extname && mimetype) {
+        if (extname || mimetype) {
             return cb(null, true);
         } else {
-            cb(new Error('Only images (jpeg, jpg, png, webp) are allowed!'));
+            cb(new Error('Only images (jpeg, jpg, png, webp) or CSV files are allowed!'));
         }
     }
 });
