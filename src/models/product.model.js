@@ -49,6 +49,12 @@ const productSchema = new mongoose.Schema({
         sellerType: { type: String, enum: ['private', 'professional'] },
         reputation: String,
         positiveFeedback: String
+    },
+    
+    // Metadata for bulk sync
+    metadata: {
+        imageFilename: String,
+        backImageFilename: String
     }
 }, { timestamps: true });
 

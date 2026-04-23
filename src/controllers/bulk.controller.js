@@ -52,34 +52,43 @@ const bulkController = {
 
             // Stream and parse CSV
             fs.createReadStream(req.file.path)
-                .pipe(csv())
+                .pipe(csv({
+                    mapHeaders: ({ header }) => header.replace(/^\uFEFF/g, '').trim() // Strip BOM and trim
+                }))
                 .on('data', (row) => {
                     results.total++;
+                    console.log(`[DEBUG_BULK] Row ${results.total} Keys:`, Object.keys(row));
+                    console.log(`[DEBUG_BULK] Row ${results.total} Images:`, { url: row.imageUrl, back: row.backImageUrl });
                     
                     // Basic validation and mapping
                     try {
                         const productData = {
-                            title: row.title,
-                            collectionName: row.collectionName,
-                            gameSystem: row.gameSystem,
+                            title: row.title?.trim(),
+                            collectionName: row.collectionName?.trim(),
+                            gameSystem: row.gameSystem?.trim(),
                             price: parseFloat(row.price),
-                            condition: row.condition?.toUpperCase(),
+                            condition: row.condition?.trim()?.toUpperCase(),
                             quantity: parseInt(row.quantity) || 1,
-                            setNumber: row.setNumber || '',
-                            rarity: row.rarity || '',
-                            description: row.description || '',
+                            setNumber: row.setNumber?.trim() || '',
+                            rarity: row.rarity?.trim() || '',
+                            description: row.description?.trim() || '',
                             status: 'active',
                             seller: sellerInfo
                         };
 
-                        // Optional image mapping
+                        // Image mapping (Front and Back)
                         if (row.imageUrl) {
-                            productData.images = [row.imageUrl];
+                            productData.images = [row.imageUrl.trim()];
                         }
+                        // Fallback: If back image is missing, use front image
+                        productData.backImage = row.backImageUrl?.trim() || (row.imageUrl?.trim() || '');
                         
-                        // Add imageFilename for later mapping if present
-                        if (row.imageFilename) {
-                            productData.metadata = { imageFilename: row.imageFilename };
+                        // Filename mapping for later sync
+                        if (row.imageFilename || row.backImageFilename) {
+                            productData.metadata = { 
+                                imageFilename: row.imageFilename?.trim() || '',
+                                backImageFilename: row.backImageFilename?.trim() || (row.imageFilename?.trim() || '')
+                            };
                         }
 
                         // Validate required fields
