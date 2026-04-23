@@ -76,24 +76,30 @@ const bulkController = {
                             seller: sellerInfo
                         };
 
-                        // Image mapping (Front and Back)
+                        // Image mapping (Front and Back) - BOTH REQUIRED
                         if (row.imageUrl) {
                             productData.images = [row.imageUrl.trim()];
                         }
-                        // Fallback: If back image is missing, use front image
-                        productData.backImage = row.backImageUrl?.trim() || (row.imageUrl?.trim() || '');
+                        if (row.backImageUrl) {
+                            productData.backImage = row.backImageUrl.trim();
+                        }
                         
                         // Filename mapping for later sync
                         if (row.imageFilename || row.backImageFilename) {
                             productData.metadata = { 
                                 imageFilename: row.imageFilename?.trim() || '',
-                                backImageFilename: row.backImageFilename?.trim() || (row.imageFilename?.trim() || '')
+                                backImageFilename: row.backImageFilename?.trim() || ''
                             };
                         }
 
-                        // Validate required fields
+                        // STRICT VALIDATION: Require BOTH front and back indicators
+                        const hasFrontImage = (row.imageUrl?.trim() || row.imageFilename?.trim());
+                        const hasBackImage = (row.backImageUrl?.trim() || row.backImageFilename?.trim());
+
                         if (!productData.title || !productData.collectionName || !productData.gameSystem || isNaN(productData.price)) {
                             results.errors.push(`Row ${results.total}: Missing required fields or invalid price`);
+                        } else if (!hasFrontImage || !hasBackImage) {
+                            results.errors.push(`Row ${results.total}: Both Front and Back images are required.`);
                         } else {
                             currentBatch.push(productData);
                         }
