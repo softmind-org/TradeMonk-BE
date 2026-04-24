@@ -53,7 +53,15 @@ const bulkController = {
             // Stream and parse CSV
             fs.createReadStream(req.file.path)
                 .pipe(csv({
-                    mapHeaders: ({ header }) => header.replace(/^\uFEFF/g, '').trim() // Strip BOM and trim
+                    separator: ';', // Adopt Powertools semicolon format
+                    mapHeaders: ({ header }) => {
+                        let clean = header.replace(/^\uFEFF/g, '').trim();
+                        // Lowercase first letter so "Description" becomes "description", matching our schema
+                        if (clean.length > 0) {
+                            clean = clean.charAt(0).toLowerCase() + clean.slice(1);
+                        }
+                        return clean;
+                    }
                 }))
                 .on('data', (row) => {
                     results.total++;
