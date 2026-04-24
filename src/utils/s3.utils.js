@@ -13,7 +13,8 @@ const SIGNED_URL_EXPIRY = 3600; // 1 hour in seconds
  */
 const isS3Url = (url) => {
     if (!url || typeof url !== 'string') return false;
-    return url.includes('.s3.') || url.includes('s3.amazonaws.com') || url.startsWith('products/');
+    // Only attempt to sign if it's from OUR bucket, or a local relative path
+    return (url.includes('.s3.') && url.includes(BUCKET)) || (url.includes('s3.amazonaws.com') && url.includes(BUCKET)) || url.startsWith('products/');
 };
 
 /**

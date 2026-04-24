@@ -76,12 +76,33 @@ const bulkController = {
                             seller: sellerInfo
                         };
 
-                        // Image mapping (Front and Back) - BOTH REQUIRED
-                        if (row.imageUrl) {
+                        // Image mapping (Optional with Stock Fallback)
+                        if (row.imageUrl?.trim()) {
                             productData.images = [row.imageUrl.trim()];
+                        } else {
+                            // Stable High-quality stock card fronts/backs
+                            const stockImages = {
+                                'Pokémon': 'https://upload.wikimedia.org/wikipedia/en/3/3b/Pokemon_Trading_Card_Game_cardback.jpg',
+                                'Yu-Gi-Oh!': 'https://images.ygoprodeck.com/images/cards/back_high.jpg',
+                                'Yu-Gi-Oh': 'https://images.ygoprodeck.com/images/cards/back_high.jpg',
+                                'Magic': 'https://cards.scryfall.io/large/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg',
+                                'Sports': 'https://i.ebayimg.com/images/g/w2YAAOSw~-ZjwS-R/s-l1600.jpg'
+                            };
+                            productData.images = [stockImages[productData.gameSystem] || 'https://upload.wikimedia.org/wikipedia/en/3/3b/Pokemon_Trading_Card_Game_cardback.jpg'];
                         }
-                        if (row.backImageUrl) {
+
+                        if (row.backImageUrl?.trim()) {
                             productData.backImage = row.backImageUrl.trim();
+                        } else {
+                            // Stable back image fallback
+                            const stockBacks = {
+                                'Pokémon': 'https://upload.wikimedia.org/wikipedia/en/3/3b/Pokemon_Trading_Card_Game_cardback.jpg',
+                                'Yu-Gi-Oh!': 'https://images.ygoprodeck.com/images/cards/back_high.jpg',
+                                'Yu-Gi-Oh': 'https://images.ygoprodeck.com/images/cards/back_high.jpg',
+                                'Magic': 'https://cards.scryfall.io/large/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg',
+                                'Sports': 'https://i.ebayimg.com/images/g/w2YAAOSw~-ZjwS-R/s-l1600.jpg'
+                            };
+                            productData.backImage = stockBacks[productData.gameSystem] || 'https://upload.wikimedia.org/wikipedia/en/3/3b/Pokemon_Trading_Card_Game_cardback.jpg';
                         }
                         
                         // Filename mapping for later sync
@@ -92,14 +113,9 @@ const bulkController = {
                             };
                         }
 
-                        // STRICT VALIDATION: Require BOTH front and back indicators
-                        const hasFrontImage = (row.imageUrl?.trim() || row.imageFilename?.trim());
-                        const hasBackImage = (row.backImageUrl?.trim() || row.backImageFilename?.trim());
-
+                        // VALIDATION: Images are now OPTIONAL (Stock images used as fallback)
                         if (!productData.title || !productData.collectionName || !productData.gameSystem || isNaN(productData.price)) {
                             results.errors.push(`Row ${results.total}: Missing required fields or invalid price`);
-                        } else if (!hasFrontImage || !hasBackImage) {
-                            results.errors.push(`Row ${results.total}: Both Front and Back images are required.`);
                         } else {
                             currentBatch.push(productData);
                         }
